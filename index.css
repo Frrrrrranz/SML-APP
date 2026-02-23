@@ -1,0 +1,72 @@
+/* Tailwind v4 - 使用 @import 引入 */
+@import "tailwindcss";
+
+/* NOTE: 变量名直接决定了 Tailwind v4 生成的工具类名，
+   必须与现有代码中的类名一致（如 bg-oldGold、text-textMain） */
+@theme {
+    --color-oldGold: #C5A059;
+    --color-background: #FAFAFA;
+    --color-surface: #FFFFFF;
+    --color-darkBackground: #1C1C1E;
+    --color-darkSurface: #2C2C2E;
+    --color-textMain: #171611;
+    --color-textSub: #877f64;
+    --color-divider: rgba(0, 0, 0, 0.05);
+
+    --font-serif: 'Newsreader', serif;
+    --font-sans: 'Noto Sans', sans-serif;
+
+    --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+
+    --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+
+    @keyframes shimmer {
+        0% {
+            transform: translateX(-100%);
+        }
+
+        100% {
+            transform: translateX(100%);
+        }
+    }
+}
+
+/* ============================================= */
+/* 全局基础样式（从 index.html 迁移）           */
+/* ============================================= */
+body {
+    background-color: #FAFAFA;
+    color: #171611;
+    -webkit-font-smoothing: antialiased;
+    /* 适配全面屏安全区域（刘海屏/圆角屏） */
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Shimmer skeleton background */
+.skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: #EBEAE6;
+    border-radius: 8px;
+}
+
+.skeleton-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.4) 50%,
+            transparent 100%);
+    animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* Hide scrollbar for clean UI */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
