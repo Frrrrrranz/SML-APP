@@ -195,16 +195,20 @@ const AuthGuard: React.FC = () => {
   return <AppContent />;
 };
 
+import { StorageProvider } from './contexts/StorageContext';
+
 const App: React.FC = () => {
   return (
     <>
       <SplashScreen />
       <LanguageProvider>
-        <AuthProvider>
-          <HashRouter>
-            <AuthGuard />
-          </HashRouter>
-        </AuthProvider>
+        <StorageProvider>
+          <AuthProvider>
+            <HashRouter>
+              <AuthGuard />
+            </HashRouter>
+          </AuthProvider>
+        </StorageProvider>
       </LanguageProvider>
       <Analytics />
     </>

@@ -1,15 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, Languages, ChevronRight } from 'lucide-react';
+import { LogOut, Languages, ChevronRight, HardDrive, Cloud } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useStorage } from '../contexts/StorageContext';
 import { staggerContainer, listItem } from '../utils/animations';
+import { getStorageUsage } from '../services/local-file-storage';
 
 export const SettingsScreen: React.FC = () => {
   const { profile, user, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
+  const { storageMode, setStorageMode, isNativeApp } = useStorage();
   const navigate = useNavigate();
+
+  // 本地存储用量
+  const [localUsage, setLocalUsage] = useState<{
+    sheets: { count: number; size: number };
+    recordings: { count: number; size: number };
+    avatars: { count: number; size: number };
+    total: number;
+  } | null>(null);
+
+  // 切换确认弹窗
+  const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
+  const [pendingMode, setPendingMode] = useState<'cloud' | 'local' | null>(null);
+
+  // 加载本地存储用量
+  useEffect(() => {
+    if (storageMode === 'local' && isNativeApp) {
+      getStorageUsage().then(setLocalUsage).catch(console.error);
+    }
+  }, [storageMode, isNativeApp]);
 
   // 生成基于昵称的默认头像 URL
   const avatarUrl = profile?.avatar_url ||
@@ -18,24 +40,44 @@ export const SettingsScreen: React.FC = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      // 登出后 AuthGuard 会自动显示登录页
     } catch (error) {
       console.error('Failed to sign out:', error);
     }
   };
 
+  // 处理存储模式切换（带确认）
+  const handleModeSwitch = (mode: 'cloud' | 'local') => {
+    if (mode === storageMode) return;
+    setPendingMode(mode);
+    setShowSwitchConfirm(true);
+  };
+
+  const confirmModeSwitch = async () => {
+    if (pendingMode) {
+      await setStorageMode(pendingMode);
+      setShowSwitchConfirm(false);
+      setPendingMode(null);
+    }
+  };
+
+  // 格式化字节大小
+  const formatSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24 font-sans">
-      {/* Header - 与 ComposersScreen / SearchScreen 保持一致的静态标题 */}
-      {/* Header - 沉浸式设计，适配刘海屏 */}
-      {/* Header - 沉浸式设计，适配刘海屏 */}
+      {/* Header */}
       <header className="sticky top-0 z-10 bg-background/60 backdrop-blur-2xl backdrop-saturate-150 px-5 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4 transition-all duration-300">
         <h1 className="text-4xl font-bold tracking-tight text-textMain font-serif">
           {t.settings.title}
         </h1>
       </header>
 
-      {/* 使用与首页/搜索页相同的 staggerContainer + listItem 动画模式 */}
       <motion.div
         className="px-4 py-2"
         variants={staggerContainer}
@@ -63,13 +105,84 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </motion.div>
 
+        {/* Storage Mode Section - 仅在原生 APP 中显示 */}
+        {isNativeApp && (
+          <motion.div variants={listItem} className="mb-6">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-4 mb-2">
+              {t.settings.storage.storageMode}
+            </h2>
+            <div className="bg-white rounded-xl overflow-hidden shadow-soft border border-gray-100">
+              {/* 云端选项 */}
+              <div
+                onClick={() => handleModeSwitch('cloud')}
+                className={`flex items-center gap-4 px-4 py-3.5 transition-colors cursor-pointer ${storageMode === 'cloud' ? 'bg-oldGold/5' : 'hover:bg-gray-50'}`}
+              >
+                <div className={`flex items-center justify-center rounded-lg shrink-0 size-8 ${storageMode === 'cloud' ? 'bg-oldGold/20 text-oldGold' : 'bg-gray-100 text-gray-400'}`}>
+                  <Cloud size={20} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-medium text-textMain">{t.settings.storage.cloud}</p>
+                  <p className="text-xs text-textSub mt-0.5">{t.settings.storage.cloudDesc}</p>
+                </div>
+                {storageMode === 'cloud' && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-oldGold"></div>
+                )}
+              </div>
+              <div className="h-px bg-gray-100 mx-4" />
+              {/* 本地选项 */}
+              <div
+                onClick={() => handleModeSwitch('local')}
+                className={`flex items-center gap-4 px-4 py-3.5 transition-colors cursor-pointer ${storageMode === 'local' ? 'bg-oldGold/5' : 'hover:bg-gray-50'}`}
+              >
+                <div className={`flex items-center justify-center rounded-lg shrink-0 size-8 ${storageMode === 'local' ? 'bg-oldGold/20 text-oldGold' : 'bg-gray-100 text-gray-400'}`}>
+                  <HardDrive size={20} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-medium text-textMain">{t.settings.storage.local}</p>
+                  <p className="text-xs text-textSub mt-0.5">{t.settings.storage.localDesc}</p>
+                </div>
+                {storageMode === 'local' && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-oldGold"></div>
+                )}
+              </div>
+            </div>
+
+            {/* 本地存储用量（仅在本地模式下显示） */}
+            {storageMode === 'local' && localUsage && (
+              <div className="mt-3 bg-white rounded-xl shadow-soft border border-gray-100 p-4">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                  {t.settings.storage.localUsage}
+                </p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-textSub">{t.settings.storage.sheets}</span>
+                    <span className="text-textMain font-medium">{localUsage.sheets.count} ({formatSize(localUsage.sheets.size)})</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-textSub">{t.settings.storage.recordingsLabel}</span>
+                    <span className="text-textMain font-medium">{localUsage.recordings.count} ({formatSize(localUsage.recordings.size)})</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-textSub">{t.settings.storage.avatarsLabel}</span>
+                    <span className="text-textMain font-medium">{localUsage.avatars.count} ({formatSize(localUsage.avatars.size)})</span>
+                  </div>
+                  <div className="h-px bg-gray-100 my-1" />
+                  <div className="flex justify-between text-sm font-bold">
+                    <span className="text-textMain">Total</span>
+                    <span className="text-oldGold">{formatSize(localUsage.total)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
         {/* Preferences Section */}
         <motion.div variants={listItem} className="mb-6">
           <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-4 mb-2">
             {t.settings.preferences.title}
           </h2>
           <div className="bg-white rounded-xl overflow-hidden shadow-soft border border-gray-100">
-            {/* 语言切换选项 - 添加提示文字 */}
             <div
               onClick={() => setLanguage(language === 'zh' ? 'en' : 'zh')}
               className="flex items-center gap-4 px-4 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer group"
@@ -116,6 +229,38 @@ export const SettingsScreen: React.FC = () => {
           </p>
         </motion.div>
       </motion.div>
+
+      {/* 存储模式切换确认弹窗 */}
+      {showSwitchConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl p-6 mx-6 max-w-sm w-full shadow-2xl"
+          >
+            <h3 className="text-lg font-bold text-textMain mb-2">
+              {t.settings.storage.storageMode}
+            </h3>
+            <p className="text-sm text-textSub mb-6">
+              {t.settings.storage.switchWarning}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSwitchConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-gray-100 text-textMain font-medium hover:bg-gray-200 transition-colors"
+              >
+                {language === 'zh' ? '取消' : 'Cancel'}
+              </button>
+              <button
+                onClick={confirmModeSwitch}
+                className="flex-1 py-2.5 rounded-xl bg-oldGold text-white font-medium hover:bg-oldGold/90 transition-colors"
+              >
+                {language === 'zh' ? '确认切换' : 'Confirm'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
