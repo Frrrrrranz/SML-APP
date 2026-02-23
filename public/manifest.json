@@ -1,0 +1,29 @@
+{
+    "name": "SML - Sheet Music Library",
+    "short_name": "SML",
+    "description": "优雅的乐谱与录音管理应用，帮助音乐爱好者整理古典音乐收藏",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#FAFAFA",
+    "theme_color": "#FAFAFA",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/logo-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/favicon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ]
+}

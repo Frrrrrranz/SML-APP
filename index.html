@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>SML - Sheet Music Library</title>
+  <meta name="description" content="优雅的乐谱与录音管理应用，帮助音乐爱好者整理古典音乐收藏" />
+  <meta property="og:title" content="SML - Sheet Music Library" />
+  <meta property="og:description" content="优雅的乐谱与录音管理应用，帮助音乐爱好者整理古典音乐收藏" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://sml-sheet-music-library.vercel.app/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SML - Sheet Music Library" />
+  <meta name="twitter:description" content="优雅的乐谱与录音管理应用" />
+  <!-- Favicon & PWA -->
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/logo.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#FAFAFA" />
+  <!-- iOS PWA 全屏模式 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SML" />
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Noto+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            oldGold: '#C5A059',
+            background: '#FAFAFA',
+            surface: '#FFFFFF',
+            darkBackground: '#1C1C1E',
+            darkSurface: '#2C2C2E',
+            textMain: '#171611',
+            textSub: '#877f64',
+            divider: 'rgba(0,0,0,0.05)',
+          },
+          fontFamily: {
+            serif: ['Newsreader', 'serif'],
+            sans: ['Noto Sans', 'sans-serif'],
+          },
+          boxShadow: {
+            'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+          },
+          animation: {
+            'shimmer': 'shimmer 1.8s ease-in-out infinite',
+          },
+          keyframes: {
+            shimmer: {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(100%)' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      background-color: #FAFAFA;
+      color: #171611;
+      -webkit-font-smoothing: antialiased;
+      /* 适配全面屏安全区域（刘海屏/圆角屏），standalone 模式下状态栏区域自动留白 */
+      /* 适配全面屏安全区域（刘海屏/圆角屏），standalone 模式下状态栏区域自动留白 */
+      /* 移除 padding-top: env(safe-area-inset-top)，由各页面 Header 独立处理 */
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Shimmer skeleton background */
+    .skeleton-shimmer {
+      position: relative;
+      overflow: hidden;
+      background: #EBEAE6;
+      border-radius: 8px;
+    }
+    .skeleton-shimmer::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%
+      );
+      animation: shimmer 1.8s ease-in-out infinite;
+    }
+
+    /* Hide scrollbar for clean UI */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>

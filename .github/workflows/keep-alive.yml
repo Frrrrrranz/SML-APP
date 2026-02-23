@@ -1,0 +1,18 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # 每三天触发一次 (UTC时间 00:00)
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/composers?select=id&limit=1" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -I | grep "HTTP/"
