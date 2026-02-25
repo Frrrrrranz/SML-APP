@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Preferences } from '@capacitor/preferences';
-import { api } from '../api';
 import { localApi, localUploadSheetMusic, localUploadAvatar, localUploadRecordingFile, localDeleteSheetMusic, localDeleteAvatar, localDeleteRecordingFile } from '../services/local-api';
-import { uploadSheetMusic, uploadAvatar, uploadRecordingFile, deleteSheetMusic, deleteAvatar, deleteRecordingFile } from '../supabase';
 import { initDatabase } from '../services/local-database';
 import { Capacitor } from '@capacitor/core';
+// NOTE: 云端存储暂时不开放，仅使用本地存储
+// import { api } from '../api';
+// import { uploadSheetMusic, uploadAvatar, ... } from '../supabase';
 
 /**
  * 存储模式上下文
@@ -16,7 +17,7 @@ type StorageMode = 'cloud' | 'local';
 // 统一的存储操作接口（包括 API 和文件操作）
 interface StorageOperations {
     // 数据 API（与 api.ts 接口一致）
-    dataApi: typeof api;
+    dataApi: typeof localApi;
     // 文件上传/删除操作
     uploadSheetMusic: (file: File, workId: string) => Promise<string>;
     uploadAvatar: (file: File, composerId: string) => Promise<string>;
@@ -39,25 +40,15 @@ const StorageContext = createContext<StorageContextType | undefined>(undefined);
 const STORAGE_MODE_KEY = 'sml_storage_mode';
 
 export const StorageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [storageMode, setStorageModeState] = useState<StorageMode>('cloud');
+    // NOTE: 当前版本强制使用本地存储模式，云端功能暂未开放
+    const [storageMode, setStorageModeState] = useState<StorageMode>('local');
     const [dbReady, setDbReady] = useState(false);
     const isNativeApp = Capacitor.isNativePlatform();
 
-    // 初始化：从 Preferences 读取上次选择的存储模式
+    // 初始化：启动本地数据库
     useEffect(() => {
-        const loadMode = async () => {
-            try {
-                const { value } = await Preferences.get({ key: STORAGE_MODE_KEY });
-                if (value === 'local' && isNativeApp) {
-                    setStorageModeState('local');
-                    await initLocalDatabase();
-                }
-            } catch (error) {
-                console.warn('Failed to load storage mode preference:', error);
-            }
-        };
-        loadMode();
-    }, [isNativeApp]);
+        initLocalDatabase();
+    }, []);
 
     // 初始化本地数据库
     const initLocalDatabase = async () => {
@@ -66,19 +57,18 @@ export const StorageProvider: React.FC<{ children: ReactNode }> = ({ children })
             setDbReady(true);
         } catch (error) {
             console.error('Failed to initialize local database:', error);
-            // FIXME: 数据库初始化失败时回退到云端模式
-            setStorageModeState('cloud');
         }
     };
 
-    // 切换存储模式
+    // NOTE: 切换存储模式（当前版本云端功能暂未开放，此函数保留备用）
     const setStorageMode = async (mode: StorageMode) => {
-        if (mode === 'local' && !isNativeApp) {
-            console.warn('Local storage mode is only available in native app');
+        // 当前强制本地模式，不允许切换到云端
+        if (mode === 'cloud') {
+            console.warn('Cloud storage is not available in this version');
             return;
         }
 
-        if (mode === 'local' && !dbReady) {
+        if (!dbReady) {
             await initLocalDatabase();
         }
 
@@ -86,23 +76,15 @@ export const StorageProvider: React.FC<{ children: ReactNode }> = ({ children })
         await Preferences.set({ key: STORAGE_MODE_KEY, value: mode });
     };
 
-    // 根据当前模式返回对应的存储操作
-    const storage: StorageOperations = storageMode === 'local' ? {
-        dataApi: localApi as unknown as typeof api,
+    // NOTE: 当前版本仅使用本地存储操作
+    const storage: StorageOperations = {
+        dataApi: localApi,
         uploadSheetMusic: localUploadSheetMusic,
         uploadAvatar: localUploadAvatar,
         uploadRecordingFile: localUploadRecordingFile,
         deleteSheetMusic: localDeleteSheetMusic,
         deleteAvatar: localDeleteAvatar,
         deleteRecordingFile: localDeleteRecordingFile,
-    } : {
-        dataApi: api,
-        uploadSheetMusic,
-        uploadAvatar,
-        uploadRecordingFile,
-        deleteSheetMusic,
-        deleteAvatar,
-        deleteRecordingFile,
     };
 
     return (
