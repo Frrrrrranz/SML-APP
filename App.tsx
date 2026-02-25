@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from './api';
+import { useStorage } from './contexts/StorageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HashRouter, Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
@@ -22,6 +22,7 @@ import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 const AppContent: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { storage } = useStorage();
 
   // Lifted state for composers
   const [composers, setComposers] = useState<Composer[]>([]);
@@ -37,7 +38,7 @@ const AppContent: React.FC = () => {
   const loadComposers = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getComposers();
+      const data = await storage.dataApi.getComposers();
       setComposers(data);
     } catch (error) {
       console.error('Failed to load composers:', error);
@@ -48,7 +49,7 @@ const AppContent: React.FC = () => {
 
   const handleAddComposer = async (newComposer: Composer): Promise<Composer | null> => {
     try {
-      const created = await api.createComposer(newComposer);
+      const created = await storage.dataApi.createComposer(newComposer);
       setComposers((prev) => [...prev, created]);
       return created;
     } catch (error) {
@@ -67,7 +68,7 @@ const AppContent: React.FC = () => {
 
   const handleDeleteComposer = async (id: string) => {
     try {
-      await api.deleteComposer(id);
+      await storage.dataApi.deleteComposer(id);
       setComposers((prev) => prev.filter(c => c.id !== id));
       navigate('/');
     } catch (error) {

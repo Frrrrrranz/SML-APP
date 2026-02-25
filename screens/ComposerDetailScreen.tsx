@@ -4,9 +4,8 @@ import { ChevronLeft, Plus, Camera, FileText, Music, Check, Trash2, Edit2, PlayC
 import { ViewMode, Composer, Work, Recording } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useStorage } from '../contexts/StorageContext';
 import { Modal } from '../components/Modal';
-import { api } from '../api';
-import { uploadSheetMusic, uploadAvatar, deleteAvatar, uploadRecordingFile } from '../supabase';
 import { fadeInUp, staggerContainer, listItemSlide, fabAnimation, tabContent } from '../utils/animations';
 
 interface ComposerDetailScreenProps {
@@ -26,6 +25,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 }) => {
   const { user: authUser, profile: authProfile } = useAuth();
   const { t } = useLanguage();
+  const { storage } = useStorage();
 
   // 管理员权限判断：基于角色
   const isAdmin = authProfile?.role === 'admin';
@@ -74,7 +74,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     const fetchDetails = async () => {
       if (composerId) {
         try {
-          const detailedComposer = await api.getComposer(composerId);
+          const detailedComposer = await storage.dataApi.getComposer(composerId);
           onUpdateComposer(detailedComposer);
         } catch (error) {
           console.error('Failed to fetch composer details:', error);
@@ -93,7 +93,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
   const handleUpdateInfo = async (field: 'name' | 'period', value: string) => {
     try {
-      const updatedComposer = await api.updateComposer(composer.id, { [field]: value });
+      const updatedComposer = await storage.dataApi.updateComposer(composer.id, { [field]: value });
       // NOTE: API 返回的 updatedComposer 不包含 works/recordings，需要保留现有数据
       onUpdateComposer({
         ...updatedComposer,
@@ -114,7 +114,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     }
 
     try {
-      await api.deleteComposer(composer.id);
+      await storage.dataApi.deleteComposer(composer.id);
       onDeleteComposer(composer.id);
     } catch (error) {
       console.error('Failed to delete composer:', error);
@@ -141,14 +141,14 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     try {
       // 删除旧头像（如果是自定义上传的）
       if (composer.image) {
-        await deleteAvatar(composer.image);
+        await storage.deleteAvatar(composer.image);
       }
 
       // 上传新头像
-      const avatarUrl = await uploadAvatar(file, composer.id);
+      const avatarUrl = await storage.uploadAvatar(file, composer.id);
 
       // 更新数据库
-      const updatedComposer = await api.updateComposer(composer.id, { image: avatarUrl });
+      const updatedComposer = await storage.dataApi.updateComposer(composer.id, { image: avatarUrl });
 
       // 更新本地状态
       onUpdateComposer({
@@ -174,12 +174,12 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     try {
       // 删除自定义头像（如果有）
       if (composer.image) {
-        await deleteAvatar(composer.image);
+        await storage.deleteAvatar(composer.image);
       }
 
       // 恢复默认头像
       const defaultImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(composer.name)}&background=random&size=256`;
-      const updatedComposer = await api.updateComposer(composer.id, { image: defaultImage });
+      const updatedComposer = await storage.dataApi.updateComposer(composer.id, { image: defaultImage });
 
       onUpdateComposer({
         ...composer,
@@ -205,7 +205,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     }
     if (window.confirm('Are you sure you want to remove this piece?')) {
       try {
-        await api.deleteWork(workId);
+        await storage.dataApi.deleteWork(workId);
         const updatedWorks = composer.works.filter(w => w.id !== workId);
         onUpdateComposer({
           ...composer,
@@ -241,7 +241,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     try {
       if (editingWorkId) {
         // Update existing work
-        const updatedWork = await api.updateWork(editingWorkId, {
+        const updatedWork = await storage.dataApi.updateWork(editingWorkId, {
           title: workFormTitle,
           year: workFormYear || 'Unknown',
           edition: workFormEdition || 'Standard Edition'
@@ -249,8 +249,8 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
         // 如果选择了新文件，上传并更新
         if (workFormFile) {
-          const fileUrl = await uploadSheetMusic(workFormFile, editingWorkId);
-          const workWithFile = await api.uploadWorkFile(editingWorkId, fileUrl);
+          const fileUrl = await storage.uploadSheetMusic(workFormFile, editingWorkId);
+          const workWithFile = await storage.dataApi.uploadWorkFile(editingWorkId, fileUrl);
           updatedWork.fileUrl = workWithFile.fileUrl;
         }
 
@@ -269,12 +269,12 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           year: workFormYear || 'Unknown',
           edition: workFormEdition || 'Standard Edition'
         };
-        const newWork = await api.createWork(newWorkPayload);
+        const newWork = await storage.dataApi.createWork(newWorkPayload);
 
         // 如果选择了文件，上传并更新
         if (workFormFile) {
-          const fileUrl = await uploadSheetMusic(workFormFile, newWork.id);
-          const workWithFile = await api.uploadWorkFile(newWork.id, fileUrl);
+          const fileUrl = await storage.uploadSheetMusic(workFormFile, newWork.id);
+          const workWithFile = await storage.dataApi.uploadWorkFile(newWork.id, fileUrl);
           newWork.fileUrl = workWithFile.fileUrl;
         }
 
@@ -310,7 +310,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     }
     if (window.confirm('Are you sure you want to remove this recording?')) {
       try {
-        await api.deleteRecording(recId);
+        await storage.dataApi.deleteRecording(recId);
         const updatedRecordings = composer.recordings.filter(r => r.id !== recId);
         onUpdateComposer({
           ...composer,
@@ -349,7 +349,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     try {
       if (editingRecordingId) {
         // Update existing recording
-        const updatedRecording = await api.updateRecording(editingRecordingId, {
+        const updatedRecording = await storage.dataApi.updateRecording(editingRecordingId, {
           title: recFormTitle,
           performer: recFormPerformer,
           year: recFormYear,
@@ -358,8 +358,8 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
         // 如果选择了新文件，上传并更新
         if (recFormFile) {
-          const fileUrl = await uploadRecordingFile(recFormFile, editingRecordingId);
-          const recWithFile = await api.uploadRecordingFileUrl(editingRecordingId, fileUrl);
+          const fileUrl = await storage.uploadRecordingFile(recFormFile, editingRecordingId);
+          const recWithFile = await storage.dataApi.uploadRecordingFileUrl(editingRecordingId, fileUrl);
           updatedRecording.fileUrl = recWithFile.fileUrl;
         }
 
@@ -376,12 +376,12 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           year: recFormYear,
           duration: recFormDuration || '0:00'
         };
-        const newRec = await api.createRecording(newRecPayload);
+        const newRec = await storage.dataApi.createRecording(newRecPayload);
 
         // 如果选择了文件，上传并更新
         if (recFormFile) {
-          const fileUrl = await uploadRecordingFile(recFormFile, newRec.id);
-          const recWithFile = await api.uploadRecordingFileUrl(newRec.id, fileUrl);
+          const fileUrl = await storage.uploadRecordingFile(recFormFile, newRec.id);
+          const recWithFile = await storage.dataApi.uploadRecordingFileUrl(newRec.id, fileUrl);
           newRec.fileUrl = recWithFile.fileUrl;
         }
 

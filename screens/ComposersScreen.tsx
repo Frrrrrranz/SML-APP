@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Plus, Camera, Library, Loader2 } from 'lucide-react';
 import { Composer } from '../types';
 import { Modal } from '../components/Modal';
-import { uploadAvatar } from '../supabase';
-import { api } from '../api';
+import { useStorage } from '../contexts/StorageContext';
 import { staggerContainer, listItem, fabAnimation } from '../utils/animations';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -18,6 +17,7 @@ interface ComposersScreenProps {
 
 export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isLoading = false, onComposerSelect, onAddComposer, onUpdateComposer }) => {
   const { t } = useLanguage();
+  const { storage } = useStorage();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [period, setPeriod] = useState('');
@@ -84,9 +84,9 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
 
       // 如果用户选择了头像图片，上传并更新
       if (imageFile && created.id) {
-        const avatarUrl = await uploadAvatar(imageFile, created.id);
+        const avatarUrl = await storage.uploadAvatar(imageFile, created.id);
         // 更新作曲家的头像 URL
-        const updated = await api.updateComposer(created.id, { image: avatarUrl });
+        const updated = await storage.dataApi.updateComposer(created.id, { image: avatarUrl });
         // 通知父组件更新状态
         if (onUpdateComposer) {
           onUpdateComposer({ ...created, image: updated.image });
