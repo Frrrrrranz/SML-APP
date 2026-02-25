@@ -10,12 +10,13 @@ import { SearchScreen } from './screens/SearchScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { AiChatScreen } from './screens/AiChatScreen';
 import { AuthScreen } from './screens/AuthScreen';
+import { CloudLibraryScreen } from './screens/CloudLibraryScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { Composer } from './types';
 import { pageTransition } from './utils/animations';
 import { SplashScreen } from './screens/SplashScreen';
-import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+
 
 
 // 主应用内容（需要登录）
@@ -110,6 +111,10 @@ const AppContent: React.FC = () => {
                 element={<SearchScreen composers={composers} />}
               />
               <Route
+                path="/cloud"
+                element={<CloudLibraryScreen />}
+              />
+              <Route
                 path="/ai-chat"
                 element={<AiChatScreen />}
               />
@@ -140,8 +145,7 @@ const AppContent: React.FC = () => {
           />
         )}
 
-        {/* PWA 添加到主屏幕提示 */}
-        <PWAInstallPrompt />
+
       </div>
     </div>
   );

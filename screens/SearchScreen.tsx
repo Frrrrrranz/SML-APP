@@ -64,7 +64,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ composers }) => {
   const renderSearchHeader = () => (
     <>
       {/* Header - 沉浸式适配：padding-top 需要包含 safe-area */}
-      <header className="px-4 pt-[calc(env(safe-area-inset-top)+3rem)] pb-2">
+      <header className="px-6 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
         <h1 className="text-4xl font-bold tracking-tight text-textMain font-serif">{t.search.title}</h1>
       </header>
 

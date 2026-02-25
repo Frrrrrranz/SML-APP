@@ -1,5 +1,5 @@
 import React from 'react';
-import { Library, Search, Settings, Sparkles } from 'lucide-react';
+import { Library, Search, Settings, Sparkles, Cloud } from 'lucide-react';
 import { NavItem } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -14,6 +14,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPath, onNavigate })
   const navItems: NavItem[] = [
     { id: 'composers', label: t.navigation.composers, icon: Library, path: '/' },
     { id: 'search', label: t.navigation.search, icon: Search, path: '/search' },
+    { id: 'cloud', label: t.navigation.cloud, icon: Cloud, path: '/cloud' },
     { id: 'ai-chat', label: t.navigation.aiChat, icon: Sparkles, path: '/ai-chat' },
     { id: 'settings', label: t.navigation.settings, icon: Settings, path: '/settings' },
   ];

@@ -135,7 +135,7 @@ export const AuthScreen: React.FC = () => {
     return (
         <div className="min-h-screen bg-background flex flex-col">
             {/* Header */}
-            <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+            <div className="flex-1 flex flex-col items-center px-6 pt-[calc(env(safe-area-inset-top)+6rem)]">
                 {/* Logo / Brand - fadeInDown 动画 */}
                 <motion.div
                     className="mb-10 text-center"
