@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Plus, Camera, FileText, Music, Check, Trash2, Edit2, PlayCircle, AlertCircle, Upload, Loader2 } from 'lucide-react';
+import { openWithSystemApp } from '../services/local-file-storage';
 import { ViewMode, Composer, Work, Recording } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -40,8 +41,8 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const [showPortraitModal, setShowPortraitModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
+  // NOTE: 非管理员点击文件时，先弹版权确认，确认后用系统应用打开
   const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<'pdf' | 'audio'>('pdf');
 
   // Work Form States
   const [editingWorkId, setEditingWorkId] = useState<string | null>(null);
@@ -67,6 +68,24 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const recFileInputRef = useRef<HTMLInputElement>(null);
 
   const composer = composers.find(c => c.id === composerId);
+
+  /**
+   * 处理文件打开（用系统应用或版权确认后用系统应用）
+   * NOTE: 管理员直接打开，非管理员需先确认版权声明
+   */
+  const handleOpenFile = async (fileUrl: string) => {
+    if (isAdmin) {
+      try {
+        await openWithSystemApp(fileUrl);
+      } catch (error) {
+        console.error('Failed to open file with system app:', error);
+        alert('无法打开文件，请确认文件是否存在');
+      }
+    } else {
+      setPendingFileUrl(fileUrl);
+      setShowCopyrightModal(true);
+    }
+  };
 
   // Scroll to top on mount and fetch details
   useEffect(() => {
@@ -106,13 +125,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   };
 
   const confirmDeleteComposer = async () => {
-    // NOTE: 管理员权限检查
-    if (!isAdmin) {
-      alert('只有管理员可以删除作曲家');
-      setShowDeleteConfirm(false);
-      return;
-    }
-
+    // NOTE: 所有用户均可删除作曲家（本地数据）
     try {
       await storage.dataApi.deleteComposer(composer.id);
       onDeleteComposer(composer.id);
@@ -198,11 +211,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   // --- Handlers: Works (Sheet Music) ---
   const handleDeleteWork = async (workId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // NOTE: 管理员权限检查
-    if (!isAdmin) {
-      alert('只有管理员可以删除乐谱');
-      return;
-    }
+    // NOTE: 所有用户均可在本地删除乐谱，不影响云端数据
     if (window.confirm('Are you sure you want to remove this piece?')) {
       try {
         await storage.dataApi.deleteWork(workId);
@@ -303,11 +312,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   // --- Handlers: Recordings ---
   const handleDeleteRecording = async (recId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // NOTE: 管理员权限检查
-    if (!isAdmin) {
-      alert('只有管理员可以删除录音');
-      return;
-    }
+    // NOTE: 所有用户均可在本地删除录音，不影响云端数据
     if (window.confirm('Are you sure you want to remove this recording?')) {
       try {
         await storage.dataApi.deleteRecording(recId);
@@ -550,22 +555,17 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                 {composer.works && composer.works.map((work) => (
                   <div
                     key={work.id}
-                    onClick={() => {
-                      // NOTE: 非编辑模式下，点击条目打开 PDF 查看
+                    onClick={async () => {
+                      // NOTE: 非编辑模式下，点击条目用系统应用打开 PDF
                       if (!isEditing && work.fileUrl) {
-                        if (isAdmin) {
-                          window.open(work.fileUrl, '_blank');
-                        } else {
-                          setPendingFileUrl(work.fileUrl);
-                          setShowCopyrightModal(true);
-                        }
+                        await handleOpenFile(work.fileUrl);
                       }
                     }}
                     className={`group flex items-center gap-4 px-6 py-4 hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative overflow-hidden ${!isEditing && work.fileUrl ? 'cursor-pointer' : ''
                       }`}
                   >
                     {/* NOTE: 删除按钮仅在编辑模式且为管理员时显示 */}
-                    {isEditing && isAdmin ? (
+                    {isEditing ? (
                       <button
                         onClick={(e) => handleDeleteWork(work.id, e)}
                         className="shrink-0 text-red-500 hover:bg-red-50 p-2 rounded-full -ml-2 transition-colors"
@@ -620,33 +620,19 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                 {composer.recordings && composer.recordings.map((recording) => (
                   <div
                     key={recording.id}
-                    onClick={() => {
-                      // NOTE: 非编辑模式下，点击条目播放音频
+                    onClick={async () => {
+                      // NOTE: 非编辑模式下，点击条目用系统应用播放音频
                       if (!isEditing && recording.fileUrl) {
-                        if (isAdmin) {
-                          window.open(recording.fileUrl, '_blank');
-                        } else {
-                          setPendingFileUrl(recording.fileUrl);
-                          setShowCopyrightModal(true);
-                        }
+                        await handleOpenFile(recording.fileUrl);
                       }
                     }}
                     className={`group flex items-center gap-4 px-6 py-4 hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative ${!isEditing && recording.fileUrl ? 'cursor-pointer' : ''
                       }`}
                   >
-                    {/* NOTE: 删除按钮仅在编辑模式且为管理员时显示 */}
-                    {isEditing && isAdmin ? (
-                      <button
-                        onClick={(e) => handleDeleteRecording(recording.id, e)}
-                        className="shrink-0 text-red-500 hover:bg-red-50 p-2 rounded-full -ml-2 transition-colors"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    ) : (
-                      <div className={`shrink-0 opacity-80 group-hover:opacity-100 transition-opacity ${recording.fileUrl ? 'text-oldGold' : 'text-gray-400'}`}>
-                        <PlayCircle size={28} strokeWidth={1.5} />
-                      </div>
-                    )}
+                    {/* NOTE: 录音不允许删除，始终显示播放图标 */}
+                    <div className={`shrink-0 opacity-80 group-hover:opacity-100 transition-opacity ${recording.fileUrl ? 'text-oldGold' : 'text-gray-400'}`}>
+                      <PlayCircle size={28} strokeWidth={1.5} />
+                    </div>
 
                     <div className="flex flex-1 flex-col justify-center min-w-0">
                       <p className="text-textMain text-base font-bold leading-tight truncate font-sans">
@@ -684,8 +670,8 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           </AnimatePresence>
         </div>
 
-        {/* Delete Composer Button (Edit Mode Only, Admin Only) */}
-        {isEditing && isAdmin && (
+        {/* Delete Composer Button - 编辑模式下显示 */}
+        {isEditing && (
           <div className="px-6 py-8 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -708,7 +694,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       {/* FAB - 带弹入动画 */}
       <motion.button
         onClick={viewMode === 'Sheet Music' ? openAddWorkModal : openAddRecordingModal}
-        className="fixed bottom-6 right-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20"
+        className="fixed bottom-24 left-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.3, type: 'spring', stiffness: 400, damping: 20 }}
@@ -772,9 +758,15 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           </div>
           <div className="flex flex-col w-full gap-3">
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (pendingFileUrl) {
-                  window.open(pendingFileUrl, '_blank');
+                  // NOTE: 版权确认后调用系统应用打开文件
+                  try {
+                    await openWithSystemApp(pendingFileUrl);
+                  } catch (error) {
+                    console.error('Failed to open file:', error);
+                    alert('无法打开文件，请确认文件是否存在');
+                  }
                   setShowCopyrightModal(false);
                   setPendingFileUrl(null);
                 }
@@ -787,6 +779,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
               onClick={() => {
                 setShowCopyrightModal(false);
                 setPendingFileUrl(null);
+
               }}
               className="w-full py-4 rounded-full font-bold text-textSub hover:bg-gray-100 transition-colors"
             >
@@ -1090,6 +1083,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           </div>
         </div>
       </Modal>
+
     </div>
   );
 };

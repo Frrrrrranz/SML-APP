@@ -416,7 +416,7 @@ const downloadCloudFileToLocal = async (
     try {
         await Filesystem.mkdir({
             path: dirMap[category],
-            directory: Directory.Documents,
+            directory: Directory.Data,
             recursive: true,
         });
     } catch {
@@ -426,7 +426,7 @@ const downloadCloudFileToLocal = async (
     await Filesystem.writeFile({
         path: filePath,
         data: base64,
-        directory: Directory.Documents,
+        directory: Directory.Data,
     });
 
     return filePath;

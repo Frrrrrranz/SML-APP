@@ -64,7 +64,7 @@ export const CloudLibraryScreen: React.FC = () => {
     // Shimmer 骨架屏
     const renderShimmer = () => (
         <div className="space-y-3 px-4">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="bg-white rounded-xl p-4 border border-gray-100 shadow-soft">
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-xl bg-gray-200 shimmer-animation" />

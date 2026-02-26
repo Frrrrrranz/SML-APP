@@ -203,7 +203,7 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
       {/* FAB - Add Composer */}
       <motion.button
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-24 right-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center z-30 ring-2 ring-white/20"
+        className="fixed bottom-24 left-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center z-30 ring-2 ring-white/20"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.3, type: 'spring', stiffness: 400, damping: 20 }}
@@ -212,16 +212,17 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
         <Plus size={28} />
       </motion.button>
 
-      {/* Add Composer Modal */}
+      {/* Add Composer Modal - NOTE: 使用 center 弹窗避免键盘推动页面 */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        variant="bottom"
-        title={t.composers.add}
+        variant="center"
       >
-        <div className="px-6 pt-6 pb-6">
+        <div className="flex flex-col items-center text-center font-sans">
+          <h3 className="text-xl font-bold text-textMain mb-6 font-serif">{t.composers.add}</h3>
+
           {/* Avatar Upload */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-6">
             <input
               type="file"
               ref={avatarInputRef}
@@ -231,7 +232,7 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
             />
             <div
               onClick={() => avatarInputRef.current?.click()}
-              className="h-32 w-32 bg-[#F2F2F7] rounded-full flex items-center justify-center shadow-inner ring-4 ring-white relative overflow-hidden cursor-pointer hover:bg-gray-200 transition-colors group"
+              className="h-24 w-24 bg-[#F2F2F7] rounded-full flex items-center justify-center shadow-inner ring-4 ring-white relative overflow-hidden cursor-pointer hover:bg-gray-200 transition-colors group"
             >
               {imagePreview ? (
                 <>
@@ -241,25 +242,24 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera size={32} className="text-white" strokeWidth={1.5} />
+                    <Camera size={24} className="text-white" strokeWidth={1.5} />
                   </div>
                 </>
               ) : (
-                <Camera size={40} className="text-gray-400 opacity-50" strokeWidth={1.5} />
+                <Camera size={32} className="text-gray-400 opacity-50" strokeWidth={1.5} />
               )}
             </div>
           </div>
 
-          <div className="space-y-8 font-sans">
+          <div className="space-y-5 w-full text-left">
             <div className="group relative">
               <label className="ml-1 mb-1 block text-sm font-medium text-textSub">{t.composers.form.name}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
+                className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-lg font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
                 placeholder={t.composers.form.namePlaceholder}
-                autoFocus
               />
             </div>
 
@@ -269,19 +269,18 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
                 type="text"
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
+                className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-lg font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
                 placeholder={t.composers.form.periodPlaceholder}
               />
             </div>
           </div>
 
-          {/* NOTE: 底部按钮使用 sticky 定位，在 Modal flex 容器内正常工作（fixed 在 transform 容器内会失效） */}
-          <div className="sticky bottom-0 left-0 w-full bg-gradient-to-t from-background via-background/95 to-transparent px-0 pb-8 pt-12 mt-8">
+          <div className="w-full mt-6">
             <button
               onClick={handleSave}
               disabled={!name || !period || isUploading}
               className={`
-                 flex w-full items-center justify-center gap-2 rounded-full py-4 text-lg font-bold text-white shadow-lg transition-all
+                 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-lg font-bold text-white shadow-lg transition-all
                  ${name && period && !isUploading
                   ? 'bg-oldGold shadow-oldGold/30 hover:bg-[#d4ac26] active:scale-[0.98]'
                   : 'bg-gray-300 cursor-not-allowed'}

@@ -2,4 +2,6 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <external-path name="my_images" path="." />
     <cache-path name="my_cache_images" path="." />
+    <!-- NOTE: 允许 FileProvider 访问 app 内部 files 目录下的 SML 文件 -->
+    <files-path name="sml_files" path="." />
 </paths>

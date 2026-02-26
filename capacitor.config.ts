@@ -10,6 +10,13 @@ const config: CapacitorConfig = {
         // url: 'http://192.168.1.49:3000',
         // cleartext: true,
     },
+    // NOTE: 阻止键盘弹出时推动页面内容，解决 Modal 中输入框弹键盘时整体上移的问题
+    plugins: {
+        Keyboard: {
+            resize: 'none',
+            scrollDisabled: true,
+        },
+    },
 };
 
 export default config;

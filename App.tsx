@@ -3,6 +3,7 @@ import { useStorage } from './contexts/StorageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HashRouter, Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
+import { App as CapApp } from '@capacitor/app';
 import { BottomNav } from './components/BottomNav';
 import { ComposersScreen } from './screens/ComposersScreen';
 import { ComposerDetailScreen } from './screens/ComposerDetailScreen';
@@ -29,6 +30,19 @@ const AppContent: React.FC = () => {
   const [composers, setComposers] = useState<Composer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // NOTE: 监听 Android 返回键/侧滑手势，实现原生导航体验
+  useEffect(() => {
+    const handler = CapApp.addListener('backButton', ({ canGoBack }) => {
+      if (canGoBack && location.pathname !== '/') {
+        navigate(-1);
+      } else {
+        // 在首页按返回键退出应用
+        CapApp.exitApp();
+      }
+    });
+    return () => { handler.then(h => h.remove()); };
+  }, [navigate, location.pathname]);
+
   // NOTE: 当路由变化到主页时重新加载数据，确保统计数量正确
   useEffect(() => {
     if (location.pathname === '/') {
@@ -51,8 +65,16 @@ const AppContent: React.FC = () => {
   const handleAddComposer = async (newComposer: Composer): Promise<Composer | null> => {
     try {
       const created = await storage.dataApi.createComposer(newComposer);
-      setComposers((prev) => [...prev, created]);
-      return created;
+      // NOTE: API 返回的对象可能不包含 works/recordings，需补充默认值以确保列表立即渲染
+      const composerWithDefaults = {
+        ...created,
+        works: created.works || [],
+        recordings: created.recordings || [],
+        sheetMusicCount: 0,
+        recordingCount: 0,
+      };
+      setComposers((prev) => [...prev, composerWithDefaults]);
+      return composerWithDefaults;
     } catch (error) {
       console.error('Failed to create composer:', error);
       return null;

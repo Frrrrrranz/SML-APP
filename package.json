@@ -12,10 +12,12 @@
   "dependencies": {
     "@capacitor-community/sqlite": "^8.0.0",
     "@capacitor/android": "^8.1.0",
+    "@capacitor/app": "^8.0.1",
     "@capacitor/cli": "^8.1.0",
     "@capacitor/core": "^8.1.0",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/preferences": "^8.0.1",
+    "@capawesome-team/capacitor-file-opener": "^8.0.1",
     "@supabase/supabase-js": "^2.91.1",
     "@vercel/analytics": "^1.6.1",
     "cors": "^2.8.6",

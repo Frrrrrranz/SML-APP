@@ -1,4 +1,6 @@
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
+import { getLocalFileUri } from './local-file-storage';
+import { Capacitor } from '@capacitor/core';
 
 /**
  * 本地 SQLite 数据库服务
@@ -91,6 +93,24 @@ const getDb = (): SQLiteDBConnection => {
 // Composers CRUD
 // =============================================
 
+/**
+ * 将本地相对路径转换为 WebView 可访问的 URL
+ * NOTE: HTTP URL 直接返回；本地路径（如 SML/avatars/xxx.jpg）通过
+ * Capacitor Filesystem API 获取 file:// URI，再转为 https://localhost/_capacitor_file_/... 格式
+ */
+const resolveImageUrl = async (imagePath: string): Promise<string> => {
+    if (!imagePath || imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        return imagePath;
+    }
+    try {
+        const uri = await getLocalFileUri(imagePath);
+        return uri ? Capacitor.convertFileSrc(uri) : imagePath;
+    } catch {
+        console.warn('Failed to resolve image URL:', imagePath);
+        return imagePath;
+    }
+};
+
 export const dbGetComposers = async () => {
     const database = getDb();
     const result = await database.query('SELECT * FROM composers ORDER BY name');
@@ -110,13 +130,19 @@ export const dbGetComposers = async () => {
         recordingsCounts[r.composer_id as string] = r.count as number;
     });
 
-    return composers.map((c: Record<string, unknown>) => ({
-        ...c,
-        sheetMusicCount: worksCounts[c.id as string] || 0,
-        recordingCount: recordingsCounts[c.id as string] || 0,
-        works: [],
-        recordings: [],
-    }));
+    // NOTE: 批量解析所有头像路径，本地路径转为 WebView 可访问的 URL
+    const resolvedComposers = await Promise.all(
+        composers.map(async (c: Record<string, unknown>) => ({
+            ...c,
+            image: await resolveImageUrl(c.image as string),
+            sheetMusicCount: worksCounts[c.id as string] || 0,
+            recordingCount: recordingsCounts[c.id as string] || 0,
+            works: [],
+            recordings: [],
+        }))
+    );
+
+    return resolvedComposers;
 };
 
 export const dbGetComposer = async (id: string) => {
@@ -126,11 +152,15 @@ export const dbGetComposer = async (id: string) => {
     if (!composerResult.values?.length) throw new Error('Composer not found');
     const composer = composerResult.values[0];
 
+    // NOTE: 解析头像路径，本地路径转为 WebView 可访问的 URL
+    const resolvedImage = await resolveImageUrl(composer.image as string);
+
     const worksResult = await database.query('SELECT * FROM works WHERE composer_id = ?', [id]);
     const recordingsResult = await database.query('SELECT * FROM recordings WHERE composer_id = ?', [id]);
 
     return {
         ...composer,
+        image: resolvedImage,
         works: (worksResult.values || []).map((w: Record<string, unknown>) => ({
             ...w,
             fileUrl: w.file_url, // NOTE: 与云端 API 保持一致的字段映射

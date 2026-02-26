@@ -1,9 +1,10 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { FileOpener } from '@capawesome-team/capacitor-file-opener';
 
 /**
  * 本地文件存储服务
  * 使用 Capacitor Filesystem API 管理设备上的乐谱、录音、头像文件
- * NOTE: 文件存储在 APP 私有目录（Documents/SML/）中
+ * NOTE: 文件存储在 APP 私有目录（Data/SML/）中
  */
 
 // 文件分类对应的子目录
@@ -22,7 +23,7 @@ const ensureDir = async (dirPath: string): Promise<void> => {
     try {
         await Filesystem.mkdir({
             path: dirPath,
-            directory: Directory.Documents,
+            directory: Directory.Data,
             recursive: true,
         });
     } catch (error: unknown) {
@@ -59,7 +60,7 @@ export const saveLocalFile = async (
     await Filesystem.writeFile({
         path: filePath,
         data: base64Data,
-        directory: Directory.Documents,
+        directory: Directory.Data,
     });
 
     return filePath;
@@ -75,7 +76,7 @@ export const deleteLocalFile = async (filePath: string): Promise<void> => {
     try {
         await Filesystem.deleteFile({
             path: filePath,
-            directory: Directory.Documents,
+            directory: Directory.Data,
         });
     } catch (error) {
         // 文件不存在时忽略错误
@@ -95,7 +96,7 @@ export const getLocalFileUri = async (filePath: string): Promise<string> => {
     try {
         const result = await Filesystem.getUri({
             path: filePath,
-            directory: Directory.Documents,
+            directory: Directory.Data,
         });
         // NOTE: Android WebView 需要 Capacitor 的 convertFileSrc 来访问本地文件
         // 但在 Capacitor 中，getUri 返回的路径已经可用
@@ -113,7 +114,7 @@ export const getLocalFileUri = async (filePath: string): Promise<string> => {
 export const readLocalFile = async (filePath: string): Promise<string> => {
     const result = await Filesystem.readFile({
         path: filePath,
-        directory: Directory.Documents,
+        directory: Directory.Data,
     });
     return result.data as string;
 };
@@ -139,7 +140,7 @@ export const getStorageUsage = async (): Promise<{
         try {
             const result = await Filesystem.readdir({
                 path: dir,
-                directory: Directory.Documents,
+                directory: Directory.Data,
             });
 
             const files = result.files || [];
@@ -173,5 +174,65 @@ const fileToBase64 = (file: File): Promise<string> => {
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);
+    });
+};
+
+/**
+ * 根据文件扩展名推断 MIME 类型
+ */
+const getMimeType = (ext: string): string => {
+    const mimeMap: Record<string, string> = {
+        pdf: 'application/pdf',
+        mp3: 'audio/mpeg',
+        wav: 'audio/wav',
+        m4a: 'audio/mp4',
+        ogg: 'audio/ogg',
+        aac: 'audio/aac',
+        flac: 'audio/flac',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        webp: 'image/webp',
+    };
+    return mimeMap[ext] || 'application/octet-stream';
+};
+
+/**
+ * 使用系统应用打开本地文件（触发 Android Intent 选择器）
+ * NOTE: 对于本地文件，通过 FileOpener 插件调用系统 Intent
+ * 对于 HTTP URL，使用浏览器打开
+ * @param filePath 本地相对路径（如 SML/sheets/xxx.pdf）或 HTTP URL
+ */
+export const openWithSystemApp = async (filePath: string): Promise<void> => {
+    if (!filePath) {
+        throw new Error('File path is empty');
+    }
+
+    console.log('[openWithSystemApp] Opening file:', filePath);
+
+    // HTTP URL 用浏览器打开
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        console.log('[openWithSystemApp] Opening HTTP URL in browser');
+        window.open(filePath, '_system');
+        return;
+    }
+
+    // 本地文件：获取真实 URI
+    const result = await Filesystem.getUri({
+        path: filePath,
+        directory: Directory.Data,
+    });
+    const fileUri = result.uri;
+    console.log('[openWithSystemApp] File URI:', fileUri);
+
+    // 推断 MIME 类型
+    const ext = filePath.split('.').pop()?.toLowerCase() || '';
+    const mimeType = getMimeType(ext);
+    console.log('[openWithSystemApp] MIME type:', mimeType);
+
+    // 调用 FileOpener 插件，触发系统「选择应用打开」对话框
+    await FileOpener.openFile({
+        path: fileUri,
+        mimeType,
     });
 };
