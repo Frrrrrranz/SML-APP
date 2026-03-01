@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Plus, Camera, Library, Loader2 } from 'lucide-react';
 import { Composer } from '../types';
@@ -6,6 +7,7 @@ import { Modal } from '../components/Modal';
 import { useStorage } from '../contexts/StorageContext';
 import { staggerContainer, listItem, fabAnimation } from '../utils/animations';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getLocalFileUri } from '../services/local-file-storage';
 
 interface ComposersScreenProps {
   composers: Composer[];
@@ -87,9 +89,18 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
         const avatarUrl = await storage.uploadAvatar(imageFile, created.id);
         // 更新作曲家的头像 URL
         const updated = await storage.dataApi.updateComposer(created.id, { image: avatarUrl });
+
+        // NOTE: dbUpdateComposer 返回的是 SQLite 中的相对路径（如 SML/avatars/xxx.jpg），
+        // 需要转换为 WebView 可访问的 URI 才能在 <img> 中显示
+        let resolvedImage = updated.image;
+        if (resolvedImage && !resolvedImage.startsWith('http')) {
+          const fileUri = await getLocalFileUri(resolvedImage);
+          if (fileUri) resolvedImage = Capacitor.convertFileSrc(fileUri);
+        }
+
         // 通知父组件更新状态
         if (onUpdateComposer) {
-          onUpdateComposer({ ...created, image: updated.image });
+          onUpdateComposer({ ...created, image: resolvedImage });
         }
       }
 

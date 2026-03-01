@@ -50,6 +50,15 @@ export const translations = {
                 period: '时期',
                 periodPlaceholder: '例如：浪漫主义时期',
             },
+            detail: {
+                edit: '编辑',
+                done: '完成',
+                deleteComposer: '删除作曲家',
+                deleteConfirmTitle: '删除作曲家？',
+                deleteConfirmDesc: '确定要删除 {name} 吗？所有关联的乐谱和录音将被永久删除。',
+                cancel: '取消',
+                confirmDelete: '删除',
+            },
         },
         settings: {
             title: '设置',
@@ -226,6 +235,15 @@ export const translations = {
                 namePlaceholder: 'e.g. Franz Liszt',
                 period: 'Period',
                 periodPlaceholder: 'e.g. Romantic Period',
+            },
+            detail: {
+                edit: 'Edit',
+                done: 'Done',
+                deleteComposer: 'Delete Composer',
+                deleteConfirmTitle: 'Delete Composer?',
+                deleteConfirmDesc: 'Are you sure you want to delete {name}? All associated sheet music and recordings will be permanently removed.',
+                cancel: 'Cancel',
+                confirmDelete: 'Delete',
             },
         },
         settings: {

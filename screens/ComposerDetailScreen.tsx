@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Plus, Camera, FileText, Music, Check, Trash2, Edit2, PlayCircle, AlertCircle, Upload, Loader2 } from 'lucide-react';
-import { openWithSystemApp } from '../services/local-file-storage';
+import { openWithSystemApp, getLocalFileUri } from '../services/local-file-storage';
+import { Capacitor } from '@capacitor/core';
 import { ViewMode, Composer, Work, Recording } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -163,10 +164,18 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       // 更新数据库
       const updatedComposer = await storage.dataApi.updateComposer(composer.id, { image: avatarUrl });
 
+      // NOTE: dbUpdateComposer 返回的是 SQLite 中的相对路径（如 SML/avatars/xxx.jpg），
+      // 需要转换为 WebView 可访问的 URI 才能在 <img> 中显示
+      let resolvedImage = updatedComposer.image;
+      if (resolvedImage && !resolvedImage.startsWith('http')) {
+        const fileUri = await getLocalFileUri(resolvedImage);
+        if (fileUri) resolvedImage = Capacitor.convertFileSrc(fileUri);
+      }
+
       // 更新本地状态
       onUpdateComposer({
         ...composer,
-        image: updatedComposer.image
+        image: resolvedImage
       });
 
       setShowPortraitModal(false);
@@ -430,7 +439,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             ${isEditing ? 'text-textMain' : 'text-oldGold hover:opacity-80'}
           `}
         >
-          {isEditing ? 'Done' : 'Edit'}
+          {isEditing ? t.composers.detail.done : t.composers.detail.edit}
         </button>
       </div>
 
@@ -677,7 +686,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
               onClick={() => setShowDeleteConfirm(true)}
               className="flex w-full items-center justify-center rounded-xl bg-white border border-red-100 py-4 text-base font-bold text-red-600 shadow-sm hover:bg-red-50 active:scale-[0.98] transition-all"
             >
-              Delete Composer
+              {t.composers.detail.deleteComposer}
             </button>
           </div>
         )}
@@ -715,23 +724,22 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-red-50 text-red-500">
             <AlertCircle size={32} strokeWidth={1.5} />
           </div>
-          <h3 className="text-xl font-bold text-textMain mb-2 font-serif">Delete Composer?</h3>
+          <h3 className="text-xl font-bold text-textMain mb-2 font-serif">{t.composers.detail.deleteConfirmTitle}</h3>
           <p className="text-textSub mb-8 text-[15px] leading-relaxed">
-            Are you sure you want to delete <span className="font-semibold text-textMain">{composer.name}</span>?
-            <br />All associated sheet music and recordings will be permanently removed.
+            {t.composers.detail.deleteConfirmDesc.replace('{name}', composer.name)}
           </p>
           <div className="flex w-full gap-3">
             <button
               onClick={() => setShowDeleteConfirm(false)}
               className="flex-1 py-3.5 rounded-full font-bold text-textMain bg-gray-100 hover:bg-gray-200 transition-colors"
             >
-              Cancel
+              {t.composers.detail.cancel}
             </button>
             <button
               onClick={confirmDeleteComposer}
               className="flex-1 py-3.5 rounded-full font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30"
             >
-              Delete
+              {t.composers.detail.confirmDelete}
             </button>
           </div>
         </div>

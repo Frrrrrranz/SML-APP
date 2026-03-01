@@ -21,6 +21,16 @@
 - **📱 离线使用**：本地存储，无需网络即可管理乐谱
 - **☁️ 云端同步**：可选的 Supabase 云端数据同步
 
+## 📥 下载与安装 (Download & Install)
+
+欢迎下载经过数字签名的 Android 正式版应用体验核心功能：
+
+1. **前往下载**: 访问 [GitHub Releases 页面](https://github.com/Frrrrrranz/SML-APP/releases/latest)
+2. **获取文件**: 在 Assets 列表中点击下载最新版本的 `app-release.apk`
+3. **安装应用**: 在 Android 手机上打开下载的 APK，如果系统提示，请允许“安装未知来源应用”即可完成安装
+
+---
+
 ## 🛠️ 技术实现
 
 ### 客户端
