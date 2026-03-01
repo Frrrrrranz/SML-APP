@@ -5,6 +5,7 @@ import { HashRouter, Routes, Route, useLocation, useNavigate, useParams } from '
 import { Analytics } from '@vercel/analytics/react';
 import { App as CapApp } from '@capacitor/app';
 import { BottomNav } from './components/BottomNav';
+import { UpdateModal } from './components/UpdateModal';
 import { ComposersScreen } from './screens/ComposersScreen';
 import { ComposerDetailScreen } from './screens/ComposerDetailScreen';
 import { SearchScreen } from './screens/SearchScreen';
@@ -17,6 +18,7 @@ import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { Composer } from './types';
 import { pageTransition } from './utils/animations';
 import { SplashScreen } from './screens/SplashScreen';
+import { checkForUpdate, downloadAndApplyUpdate, reloadApp, notifyAppReady } from './services/ota-update';
 
 
 
@@ -29,6 +31,13 @@ const AppContent: React.FC = () => {
   // Lifted state for composers
   const [composers, setComposers] = useState<Composer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // OTA 热更新相关状态
+  const [updateVersion, setUpdateVersion] = useState('');
+  const [updateDownloadUrl, setUpdateDownloadUrl] = useState('');
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<'prompt' | 'downloading' | 'success' | 'error'>('prompt');
+  const [updateProgress, setUpdateProgress] = useState(0);
 
   // NOTE: 监听 Android 返回键/侧滑手势，实现原生导航体验
   useEffect(() => {
@@ -49,6 +58,37 @@ const AppContent: React.FC = () => {
       loadComposers();
     }
   }, [location.pathname]);
+
+  // NOTE: 应用启动时通知插件当前版本正常运行，并静默检查 OTA 更新
+  useEffect(() => {
+    const doCheck = async () => {
+      try {
+        // 通知 capacitor-updater 当前版本运行正常，防止自动回滚
+        await notifyAppReady();
+
+        const update = await checkForUpdate();
+        if (update && update.isWebUpdate) {
+          setUpdateVersion(update.version);
+          setUpdateDownloadUrl(update.downloadUrl);
+          setUpdateStatus('prompt');
+          setUpdateProgress(0);
+          setShowUpdateModal(true);
+        }
+      } catch (error) {
+        // 更新检查失败不影响正常使用
+        console.error('OTA update check failed:', error);
+      }
+    };
+    doCheck();
+  }, []);
+
+  // 处理用户确认更新
+  const handleConfirmUpdate = async () => {
+    setUpdateStatus('downloading');
+    setUpdateProgress(0);
+    const success = await downloadAndApplyUpdate(updateDownloadUrl, setUpdateProgress);
+    setUpdateStatus(success ? 'success' : 'error');
+  };
 
   const loadComposers = async () => {
     setIsLoading(true);
@@ -167,6 +207,16 @@ const AppContent: React.FC = () => {
           />
         )}
 
+        {/* OTA 更新弹窗 */}
+        <UpdateModal
+          visible={showUpdateModal}
+          version={updateVersion}
+          status={updateStatus}
+          progress={updateProgress}
+          onConfirm={handleConfirmUpdate}
+          onDismiss={() => setShowUpdateModal(false)}
+          onReload={reloadApp}
+        />
 
       </div>
     </div>

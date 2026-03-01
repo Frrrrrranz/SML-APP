@@ -16,6 +16,10 @@ const config: CapacitorConfig = {
             resize: 'none',
             scrollDisabled: true,
         },
+        // NOTE: OTA 热更新：使用手动模式，由应用代码控制更新逻辑
+        CapacitorUpdater: {
+            autoUpdate: false,
+        },
     },
 };
 
