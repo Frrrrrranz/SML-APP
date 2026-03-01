@@ -1,16 +1,10 @@
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { CapacitorUpdater, BundleInfo } from '@capgo/capacitor-updater';
 import { WEB_VERSION, GITHUB_REPO } from '../constants/app-version';
 
 /**
  * OTA 热更新服务
  * NOTE: 利用 @capgo/capacitor-updater 在原生层实现 Web 资源热替换，
  * 通过 GitHub Releases API 检测更新并下载 web-bundle.zip。
- * 
- * 工作原理：
- * 1. 检查 GitHub Releases 中是否有 tag 以 "web-v" 开头且版本号更高的 release
- * 2. 如果有，下载其 web-bundle.zip 附件
- * 3. 使用 capacitor-updater 插件加载新的 Web 资源包
- * 4. 重载 WebView 以应用更新
  */
 
 interface UpdateInfo {
@@ -40,7 +34,7 @@ const compareVersions = (current: string, remote: string): number => {
 
 /**
  * 从 GitHub Releases 检查是否有可用更新
- * NOTE: 查找 tag 名称以 "web-v" 开头的 release，这些是 Web 热更新
+ * NOTE: 查找 tag 名称以 "web-v" 开头的 release
  */
 export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
     try {
@@ -59,7 +53,6 @@ export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
         const releases = await response.json();
         if (!releases || releases.length === 0) return null;
 
-        // 查找最新的 web 热更新 release（tag 以 "web-v" 开头）
         for (const release of releases) {
             const tag: string = release.tag_name || '';
 
@@ -67,7 +60,6 @@ export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
                 const remoteVersion = tag.replace('web-v', '');
 
                 if (compareVersions(WEB_VERSION, remoteVersion) > 0) {
-                    // 查找 web-bundle.zip 附件
                     const bundleAsset = release.assets?.find(
                         (a: Record<string, string>) =>
                             a.name === 'web-bundle.zip'
@@ -92,59 +84,70 @@ export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
     }
 };
 
+// NOTE: 缓存下载好的 bundle 信息，供用户确认重启时使用
+let pendingBundle: BundleInfo | null = null;
+
 /**
- * 下载并应用 Web 热更新
- * NOTE: 使用 @capgo/capacitor-updater 的原生能力下载 zip 并切换 WebView 路径
+ * 下载 Web 热更新 bundle（仅下载，不立即应用）
+ * NOTE: 不调用 set()，因为 set() 会立即重载 WebView
+ * 下载完成后等用户手动点击"重启"再应用
  */
-export const downloadAndApplyUpdate = async (
+export const downloadUpdate = async (
     downloadUrl: string,
     onProgress?: (progress: number) => void
 ): Promise<boolean> => {
     try {
         onProgress?.(10);
 
-        // 通知插件准备应用更新（阻止自动回滚）
-        await CapacitorUpdater.notifyAppReady();
-
-        onProgress?.(20);
-
         // 使用 capacitor-updater 下载 zip bundle
-        // NOTE: download 方法接受 url 参数，插件在原生层处理下载和解压
         const bundle = await CapacitorUpdater.download({
             url: downloadUrl,
-            version: new Date().toISOString(), // 用时间戳作为内部标识
+            version: new Date().toISOString(),
         });
-
-        onProgress?.(80);
-
-        // 设置下一次加载使用新 bundle
-        await CapacitorUpdater.set({ id: bundle.id });
 
         onProgress?.(100);
 
+        // 缓存 bundle，等用户确认后再应用
+        pendingBundle = bundle;
+
         return true;
     } catch (error) {
-        console.error('Failed to apply update:', error);
+        console.error('Failed to download update:', error);
         return false;
     }
 };
 
 /**
- * 重新加载应用以应用更新
+ * 应用已下载的更新并重新加载
+ * NOTE: 调用 set() 会切换 WebView 到新 bundle 并自动重载
+ * 只在用户点击"立即重启"时调用
  */
-export const reloadApp = (): void => {
-    // NOTE: 使用 capacitor-updater 的 reload 来切换到新 bundle
-    CapacitorUpdater.reload();
+export const applyUpdateAndReload = async (): Promise<void> => {
+    if (!pendingBundle) {
+        console.error('No pending bundle to apply');
+        return;
+    }
+
+    try {
+        // set() 会切换到新 bundle 并自动重载 WebView
+        await CapacitorUpdater.set({ id: pendingBundle.id });
+        // NOTE: 执行到这里后 WebView 已经重载，后续代码不会执行
+    } catch (error) {
+        console.error('Failed to apply update:', error);
+    }
 };
 
 /**
- * 应用启动时通知插件当前版本运行正常
- * NOTE: 必须在每次启动时调用，否则插件会认为更新失败并自动回滚
+ * 应用启动时立即通知插件当前版本运行正常
+ * NOTE: 必须在应用启动后尽快调用（10 秒内），
+ * 否则插件会认为更新导致应用崩溃并自动回滚到上一个版本
+ * 这是导致白屏的主要原因——回滚到空 bundle
  */
 export const notifyAppReady = async (): Promise<void> => {
     try {
         await CapacitorUpdater.notifyAppReady();
     } catch (error) {
-        console.error('Failed to notify app ready:', error);
+        // 首次安装或无 bundle 更新时可能报错，忽略即可
+        console.warn('notifyAppReady skipped:', error);
     }
 };

@@ -18,7 +18,7 @@ import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { Composer } from './types';
 import { pageTransition } from './utils/animations';
 import { SplashScreen } from './screens/SplashScreen';
-import { checkForUpdate, downloadAndApplyUpdate, reloadApp, notifyAppReady } from './services/ota-update';
+import { checkForUpdate, downloadUpdate, applyUpdateAndReload, notifyAppReady } from './services/ota-update';
 
 
 
@@ -59,13 +59,10 @@ const AppContent: React.FC = () => {
     }
   }, [location.pathname]);
 
-  // NOTE: 应用启动时通知插件当前版本正常运行，并静默检查 OTA 更新
+  // NOTE: 应用启动时静默检查 OTA 更新
   useEffect(() => {
     const doCheck = async () => {
       try {
-        // 通知 capacitor-updater 当前版本运行正常，防止自动回滚
-        await notifyAppReady();
-
         const update = await checkForUpdate();
         if (update && update.isWebUpdate) {
           setUpdateVersion(update.version);
@@ -82,11 +79,11 @@ const AppContent: React.FC = () => {
     doCheck();
   }, []);
 
-  // 处理用户确认更新
+  // 处理用户确认更新（仅下载，不自动重载）
   const handleConfirmUpdate = async () => {
     setUpdateStatus('downloading');
     setUpdateProgress(0);
-    const success = await downloadAndApplyUpdate(updateDownloadUrl, setUpdateProgress);
+    const success = await downloadUpdate(updateDownloadUrl, setUpdateProgress);
     setUpdateStatus(success ? 'success' : 'error');
   };
 
@@ -215,7 +212,7 @@ const AppContent: React.FC = () => {
           progress={updateProgress}
           onConfirm={handleConfirmUpdate}
           onDismiss={() => setShowUpdateModal(false)}
-          onReload={reloadApp}
+          onReload={applyUpdateAndReload}
         />
 
       </div>
@@ -275,6 +272,12 @@ const AuthGuard: React.FC = () => {
 import { StorageProvider } from './contexts/StorageContext';
 
 const App: React.FC = () => {
+  // NOTE: 必须在应用启动后立即通知 capacitor-updater 当前版本正常运行
+  // 如果超时未调用（默认 10 秒），插件会自动回滚到上一个版本，导致白屏或卡住
+  useEffect(() => {
+    notifyAppReady();
+  }, []);
+
   return (
     <>
       <SplashScreen />
