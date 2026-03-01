@@ -130,10 +130,9 @@ export const downloadUpdate = async (
 };
 
 /**
- * 应用已下载的更新
- * NOTE: set() 在当前版本无法正确切换 WebView 加载路径（重载后仍为 builtin），
- * 改用 next() 标记 bundle 给下次冷启动，然后 exitApp() 强制关闭应用。
- * 用户重新打开应用时自动加载新版本。
+ * 应用已下载的更新并重新加载
+ * NOTE: 使用 set() 切换 bundle 并自动重载 WebView。
+ * 如果 set() 未能自动重载，使用 next() + exitApp() 作为降级方案。
  */
 export const applyUpdateAndReload = async (): Promise<void> => {
     if (!pendingBundle) {
@@ -142,20 +141,20 @@ export const applyUpdateAndReload = async (): Promise<void> => {
     }
 
     try {
-        console.log('[OTA] Applying bundle via next():', JSON.stringify(pendingBundle));
+        console.log('[OTA] Applying bundle:', JSON.stringify(pendingBundle));
 
-        // 列出所有 bundles 确认下载成功
         const list = await CapacitorUpdater.list();
         console.log('[OTA] Available bundles:', JSON.stringify(list));
 
-        // NOTE: 使用 next() 而非 set()
-        // next() 标记 bundle 为下次应用启动时使用
-        await CapacitorUpdater.next({ id: pendingBundle.id });
-        console.log('[OTA] next() called, bundle marked for next launch');
+        // NOTE: 先尝试 set()，它应该切换 bundle 并自动重载 WebView
+        console.log('[OTA] Calling set() with full bundle...');
+        await CapacitorUpdater.set(pendingBundle);
 
-        // 强制关闭应用，用户重新打开时加载新 bundle
+        // 如果执行到这里（5秒内未重载），说明 set() 没有自动重载
+        // 降级方案：next() + exitApp()
+        console.log('[OTA] set() did not reload, falling back to next() + exitApp()...');
+        await CapacitorUpdater.next({ id: pendingBundle.id });
         const { App: CapacitorApp } = await import('@capacitor/app');
-        console.log('[OTA] Exiting app to apply update...');
         await CapacitorApp.exitApp();
     } catch (error) {
         console.error('[OTA] Failed to apply update:', error);
