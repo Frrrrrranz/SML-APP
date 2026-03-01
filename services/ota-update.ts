@@ -147,14 +147,12 @@ export const applyUpdateAndReload = async (): Promise<void> => {
         const list = await CapacitorUpdater.list();
         console.log('[OTA] Available bundles:', JSON.stringify(list));
 
+        // NOTE: set() 必须传入完整的 BundleInfo 对象（download 的返回值），
+        // 而非 { id: string }，否则插件无法正确激活 bundle
         // set() 会切换到新 bundle 并自动重载 WebView
-        const result = await CapacitorUpdater.set({ id: pendingBundle.id });
-        console.log('[OTA] Set result:', JSON.stringify(result));
-
-        // NOTE: 如果 set() 没有自动重载，显式调用 reload
-        // set() 之后代码理论上不会执行到这里，但作为保险
-        console.log('[OTA] Calling reload as fallback...');
-        await CapacitorUpdater.reload();
+        console.log('[OTA] Calling set with full bundle object...');
+        await CapacitorUpdater.set(pendingBundle);
+        // NOTE: set() 之后 WebView 应该自动重载，后续代码不再执行
     } catch (error) {
         console.error('[OTA] Failed to apply update:', error);
     }
