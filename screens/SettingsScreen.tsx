@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Languages, ChevronRight, HardDrive, Upload, Cloud, Check } from 'lucide-react';
+import { WEB_VERSION } from '../constants/app-version';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -284,6 +285,9 @@ export const SettingsScreen: React.FC = () => {
         <motion.div variants={listItem} className="text-center pb-8">
           <p className="text-xs text-gray-400">
             © 2026 SML
+          </p>
+          <p className="text-[10px] text-gray-300 mt-1">
+            v{WEB_VERSION}
           </p>
         </motion.div>
       </motion.div>
