@@ -214,8 +214,8 @@ export const SettingsScreen: React.FC = () => {
               onClick={isAdmin ? handleOpenPushModal : undefined}
               disabled={!isAdmin}
               className={`w-full flex items-center gap-4 px-4 py-3.5 transition-colors ${isAdmin
-                  ? 'hover:bg-blue-50 active:bg-blue-100 cursor-pointer'
-                  : 'opacity-50 cursor-not-allowed'
+                ? 'hover:bg-blue-50 active:bg-blue-100 cursor-pointer'
+                : 'opacity-50 cursor-not-allowed'
                 }`}
             >
               <div className={`flex items-center justify-center rounded-lg shrink-0 size-8 ${isAdmin ? 'bg-blue-500/10 text-blue-500' : 'bg-gray-200 text-gray-400'
@@ -292,14 +292,14 @@ export const SettingsScreen: React.FC = () => {
       <AnimatePresence>
         {showPushModal && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+            className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => !isPushing && setShowPushModal(false)}
           >
             <motion.div
-              className="bg-white rounded-t-2xl w-full max-w-[480px] max-h-[70vh] flex flex-col shadow-xl pb-[env(safe-area-inset-bottom)]"
+              className="bg-white rounded-t-2xl w-full max-w-[480px] max-h-[70vh] flex flex-col shadow-xl pb-[calc(env(safe-area-inset-bottom)+4.5rem)]"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -334,8 +334,8 @@ export const SettingsScreen: React.FC = () => {
                     >
                       {/* 勾选框 */}
                       <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${selectedIds.has(composer.id)
-                          ? 'bg-oldGold border-oldGold'
-                          : 'border-gray-300'
+                        ? 'bg-oldGold border-oldGold'
+                        : 'border-gray-300'
                         }`}>
                         {selectedIds.has(composer.id) && <Check size={14} className="text-white" />}
                       </div>
@@ -386,8 +386,8 @@ export const SettingsScreen: React.FC = () => {
                     onClick={handlePush}
                     disabled={selectedIds.size === 0}
                     className={`w-full py-3 rounded-xl font-medium text-sm transition-colors ${selectedIds.size > 0
-                        ? 'bg-oldGold text-white active:bg-oldGold/90'
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      ? 'bg-oldGold text-white active:bg-oldGold/90'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                   >
                     {selectedIds.size > 0
