@@ -38,6 +38,8 @@ const compareVersions = (current: string, remote: string): number => {
  */
 export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
     try {
+        console.log('[OTA] Checking for updates... current version:', WEB_VERSION);
+
         const response = await fetch(
             `https://api.github.com/repos/${GITHUB_REPO}/releases`,
             {
@@ -46,11 +48,13 @@ export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
         );
 
         if (!response.ok) {
-            console.error('Failed to check for updates:', response.statusText);
+            console.error('[OTA] GitHub API failed:', response.status, response.statusText);
             return null;
         }
 
         const releases = await response.json();
+        console.log('[OTA] Found', releases.length, 'releases');
+
         if (!releases || releases.length === 0) return null;
 
         for (const release of releases) {
@@ -58,28 +62,34 @@ export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
 
             if (tag.startsWith('web-v')) {
                 const remoteVersion = tag.replace('web-v', '');
+                const cmp = compareVersions(WEB_VERSION, remoteVersion);
+                console.log(`[OTA] Comparing: current=${WEB_VERSION} remote=${remoteVersion} result=${cmp}`);
 
-                if (compareVersions(WEB_VERSION, remoteVersion) > 0) {
+                if (cmp > 0) {
                     const bundleAsset = release.assets?.find(
                         (a: Record<string, string>) =>
                             a.name === 'web-bundle.zip'
                     );
 
                     if (bundleAsset) {
+                        console.log('[OTA] Update available:', remoteVersion, 'url:', bundleAsset.browser_download_url);
                         return {
                             version: remoteVersion,
                             downloadUrl: bundleAsset.browser_download_url,
                             releaseNotes: release.body || '',
                             isWebUpdate: true,
                         };
+                    } else {
+                        console.warn('[OTA] Release found but no web-bundle.zip asset');
                     }
                 }
             }
         }
 
+        console.log('[OTA] No update available');
         return null;
     } catch (error) {
-        console.error('Update check failed:', error);
+        console.error('[OTA] Update check failed:', error);
         return null;
     }
 };
@@ -97,6 +107,7 @@ export const downloadUpdate = async (
     onProgress?: (progress: number) => void
 ): Promise<boolean> => {
     try {
+        console.log('[OTA] Starting download from:', downloadUrl);
         onProgress?.(10);
 
         // 使用 capacitor-updater 下载 zip bundle
@@ -105,6 +116,7 @@ export const downloadUpdate = async (
             version: new Date().toISOString(),
         });
 
+        console.log('[OTA] Download complete, bundle:', JSON.stringify(bundle));
         onProgress?.(100);
 
         // 缓存 bundle，等用户确认后再应用
@@ -112,28 +124,39 @@ export const downloadUpdate = async (
 
         return true;
     } catch (error) {
-        console.error('Failed to download update:', error);
+        console.error('[OTA] Download failed:', error);
         return false;
     }
 };
 
 /**
  * 应用已下载的更新并重新加载
- * NOTE: 调用 set() 会切换 WebView 到新 bundle 并自动重载
+ * NOTE: set() 会切换到新 bundle 并自动重载 WebView
  * 只在用户点击"立即重启"时调用
  */
 export const applyUpdateAndReload = async (): Promise<void> => {
     if (!pendingBundle) {
-        console.error('No pending bundle to apply');
+        console.error('[OTA] No pending bundle to apply');
         return;
     }
 
     try {
+        console.log('[OTA] Applying bundle:', JSON.stringify(pendingBundle));
+
+        // 先列出所有 bundles 确认下载成功
+        const list = await CapacitorUpdater.list();
+        console.log('[OTA] Available bundles:', JSON.stringify(list));
+
         // set() 会切换到新 bundle 并自动重载 WebView
-        await CapacitorUpdater.set({ id: pendingBundle.id });
-        // NOTE: 执行到这里后 WebView 已经重载，后续代码不会执行
+        const result = await CapacitorUpdater.set({ id: pendingBundle.id });
+        console.log('[OTA] Set result:', JSON.stringify(result));
+
+        // NOTE: 如果 set() 没有自动重载，显式调用 reload
+        // set() 之后代码理论上不会执行到这里，但作为保险
+        console.log('[OTA] Calling reload as fallback...');
+        await CapacitorUpdater.reload();
     } catch (error) {
-        console.error('Failed to apply update:', error);
+        console.error('[OTA] Failed to apply update:', error);
     }
 };
 
@@ -141,13 +164,13 @@ export const applyUpdateAndReload = async (): Promise<void> => {
  * 应用启动时立即通知插件当前版本运行正常
  * NOTE: 必须在应用启动后尽快调用（10 秒内），
  * 否则插件会认为更新导致应用崩溃并自动回滚到上一个版本
- * 这是导致白屏的主要原因——回滚到空 bundle
  */
 export const notifyAppReady = async (): Promise<void> => {
     try {
-        await CapacitorUpdater.notifyAppReady();
+        const result = await CapacitorUpdater.notifyAppReady();
+        console.log('[OTA] notifyAppReady success:', JSON.stringify(result));
     } catch (error) {
         // 首次安装或无 bundle 更新时可能报错，忽略即可
-        console.warn('notifyAppReady skipped:', error);
+        console.warn('[OTA] notifyAppReady skipped:', error);
     }
 };
