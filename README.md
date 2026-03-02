@@ -70,7 +70,7 @@ npx cap open android
 | 仓库 | 说明 |
 |------|------|
 | [SML-APP](https://github.com/Frrrrrranz/SML-APP) | Android 客户端（本仓库，主力开发） |
-| [SML](https://github.com/Frrrrrranz/SML-SheetMusicLibrary) | Web 展示页（本仓库） |
+| [SML](https://github.com/Frrrrrranz/SML-SheetMusicLibrary) | Web 展示页 |
 
 ## 📄 致谢
 
