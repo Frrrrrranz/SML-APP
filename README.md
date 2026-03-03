@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/badge/Capacitor-119EFF?style=for-the-badge&logo=capacitor&logoColor=white" alt="Capacitor" />
   <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
   <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPL_v3-blue.svg?style=for-the-badge" alt="License: GPL v3" /></a>
 </p>
 
 一个简洁、高效的乐谱与练习录音管理 Android 应用，为音乐学习者提供便捷的资源整理方案。
@@ -71,6 +72,10 @@ npx cap open android
 |------|------|
 | [SML-APP](https://github.com/Frrrrrranz/SML-APP) | Android 客户端（本仓库，主力开发） |
 | [SML](https://github.com/Frrrrrranz/SML-SheetMusicLibrary) | Web 展示页 |
+
+## 📄 协议 (License)
+
+本项目基于 [GPL-3.0 协议](LICENSE) 开源。详细信息请参阅 [LICENSE](LICENSE) 文件。
 
 ## 📄 致谢
 
