@@ -9,9 +9,10 @@ interface ModalProps {
   children: React.ReactNode;
   variant?: 'center' | 'bottom';
   title?: string;
+  cancelText?: string;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, variant = 'center', title }) => {
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, variant = 'center', title, cancelText = 'Cancel' }) => {
   // NOTE: Modal 打开时锁定 body 滚动，防止背景列表跟着滑动
   useEffect(() => {
     if (isOpen) {
@@ -79,9 +80,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, variant
               <div className="flex items-center justify-between px-6 pb-4 pt-2 border-b border-gray-100 shrink-0">
                 <button
                   onClick={onClose}
-                  className="text-lg font-medium text-oldGold hover:opacity-80 transition-opacity"
+                  className="text-lg font-medium text-oldGold hover:opacity-80 transition-opacity min-w-[58px] text-left"
                 >
-                  Cancel
+                  {cancelText}
                 </button>
                 <h2 className="text-xl font-bold font-serif text-textMain">{title}</h2>
                 <div className="w-[58px]" /> {/* Spacer */}

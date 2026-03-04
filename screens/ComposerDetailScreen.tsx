@@ -199,8 +199,8 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         await storage.deleteAvatar(composer.image);
       }
 
-      // 恢复默认头像
-      const defaultImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(composer.name)}&background=random&size=256`;
+      // NOTE: 使用固定占位符图片，避免基于名字的头像在改名后不同步
+      const defaultImage = '/composer-placeholder.png';
       const updatedComposer = await storage.dataApi.updateComposer(composer.id, { image: defaultImage });
 
       onUpdateComposer({
@@ -221,7 +221,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const handleDeleteWork = async (workId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     // NOTE: 所有用户均可在本地删除乐谱，不影响云端数据
-    if (window.confirm('Are you sure you want to remove this piece?')) {
+    if (window.confirm(t.cloud.deleteWorkConfirm)) {
       try {
         await storage.dataApi.deleteWork(workId);
         const updatedWorks = composer.works.filter(w => w.id !== workId);
@@ -322,7 +322,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const handleDeleteRecording = async (recId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     // NOTE: 所有用户均可在本地删除录音，不影响云端数据
-    if (window.confirm('Are you sure you want to remove this recording?')) {
+    if (window.confirm(t.cloud.deleteRecordingConfirm)) {
       try {
         await storage.dataApi.deleteRecording(recId);
         const updatedRecordings = composer.recordings.filter(r => r.id !== recId);
@@ -542,7 +542,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                   }
                 `}
               >
-                {mode}
+                {mode === 'Sheet Music' ? t.cloud.sheetMusicTab : t.cloud.recordingsTab}
               </button>
             ))}
           </div>
@@ -611,7 +611,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                 ))}
                 {(!composer.works || composer.works.length === 0) && (
                   <div className="px-6 py-12 text-center text-gray-400 font-serif italic">
-                    No sheet music added yet.
+                    {t.cloud.noSheetMusic}
                   </div>
                 )}
               </motion.div>
@@ -671,7 +671,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                 ))}
                 {(!composer.recordings || composer.recordings.length === 0) && (
                   <div className="px-6 py-12 text-center text-gray-400 font-serif italic">
-                    No recordings available.
+                    {t.cloud.noRecordings}
                   </div>
                 )}
               </motion.div>
@@ -801,119 +801,95 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       <Modal
         isOpen={showWorkModal}
         onClose={() => setShowWorkModal(false)}
-        variant="bottom"
-        title={editingWorkId ? "Edit Piece" : "Add New Piece"}
+        variant="center"
       >
-        <div className="px-6 pt-4 pb-32">
-          {/* PDF Upload Section */}
-          <section className="mb-10">
-            <h3 className="mb-5 text-2xl font-bold tracking-tight text-textMain font-serif">上传乐谱</h3>
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".pdf"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setWorkFormFile(file);
-              }}
-            />
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className={`
-                flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all
-                ${workFormFile ? 'border-oldGold bg-oldGold/5' : 'border-gray-300 hover:border-oldGold/50'}
-              `}
-            >
-              {workFormFile ? (
-                <>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-oldGold/10 text-oldGold mb-3">
-                    <Check size={28} />
-                  </div>
-                  <p className="text-textMain font-semibold text-center">{workFormFile.name}</p>
-                  <p className="text-textSub text-sm mt-1">点击更换文件</p>
-                </>
-              ) : (
-                <>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 mb-3">
-                    <Upload size={28} />
-                  </div>
-                  <p className="text-textMain font-semibold">选择 PDF 文件</p>
-                  <p className="text-textSub text-sm mt-1">支持 PDF 格式</p>
-                </>
-              )}
-            </div>
-          </section>
+        <div className="flex flex-col font-sans">
+          <h3 className="text-xl font-bold text-textMain mb-5 font-serif text-center">{editingWorkId ? '编辑乐谱' : '添加乐谱'}</h3>
 
-          {/* Details Section */}
-          <section className="mb-10">
-            <h3 className="mb-6 text-2xl font-bold tracking-tight text-textMain font-serif">Details</h3>
-            <div className="flex flex-col gap-6 font-sans">
-              <div className="group relative">
-                <label className="ml-1 mb-1 block text-sm font-medium text-textSub">Work Title</label>
-                <input
-                  type="text"
-                  value={workFormTitle}
-                  onChange={(e) => setWorkFormTitle(e.target.value)}
-                  className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
-                  placeholder="e.g. Nocturne Op. 9 No. 2"
-                />
-              </div>
-              <div className="group relative">
-                <label className="ml-1 mb-1 block text-sm font-medium text-textSub">Composer</label>
-                <input
-                  type="text"
-                  className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
-                  defaultValue={composer.name}
-                  disabled
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="group relative">
-                  <label className="ml-1 mb-1 block text-sm font-medium text-textSub">Year</label>
-                  <input
-                    type="text"
-                    value={workFormYear}
-                    onChange={(e) => setWorkFormYear(e.target.value)}
-                    className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
-                    placeholder="Optional"
-                  />
+          {/* PDF Upload */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setWorkFormFile(file);
+            }}
+          />
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-all mb-5 ${workFormFile ? 'border-oldGold bg-oldGold/5' : 'border-gray-300 hover:border-oldGold/50'}`}
+          >
+            {workFormFile ? (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-oldGold/10 text-oldGold mb-2">
+                  <Check size={22} />
                 </div>
-                <div className="group relative">
-                  <label className="ml-1 mb-1 block text-sm font-medium text-textSub">Edition</label>
-                  <input
-                    type="text"
-                    value={workFormEdition}
-                    onChange={(e) => setWorkFormEdition(e.target.value)}
-                    className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
-                    placeholder="e.g. Henle"
-                  />
+                <p className="text-textMain font-semibold text-sm text-center truncate max-w-full">{workFormFile.name}</p>
+                <p className="text-textSub text-xs mt-0.5">点击更换文件</p>
+              </>
+            ) : (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400 mb-2">
+                  <Upload size={22} />
                 </div>
-              </div>
-
-            </div>
-          </section>
-
-          {/* Footer CTA */}
-          <div className="fixed bottom-0 left-0 w-full bg-gradient-to-t from-background via-background/95 to-transparent px-6 pb-8 pt-12 z-20">
-            <button
-              onClick={handleSaveWork}
-              disabled={!workFormTitle || isUploading}
-              className={`
-                 flex w-full items-center justify-center gap-2 rounded-full py-4 text-lg font-bold text-white shadow-lg transition-transform active:scale-[0.98]
-                 ${workFormTitle && !isUploading ? 'bg-oldGold shadow-oldGold/30 hover:bg-[#d4ac26]' : 'bg-gray-300 cursor-not-allowed'}
-               `}
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  上传中...
-                </>
-              ) : (
-                editingWorkId ? "保存更改" : "保存到曲库"
-              )}
-            </button>
+                <p className="text-textMain font-semibold text-sm">选择 PDF 文件</p>
+              </>
+            )}
           </div>
+
+          {/* Form Fields */}
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="ml-1 mb-1 block text-sm font-medium text-textSub">{t.cloud.form.title}</label>
+              <input
+                type="text"
+                value={workFormTitle}
+                onChange={(e) => setWorkFormTitle(e.target.value)}
+                className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-lg font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
+                placeholder={t.cloud.form.titlePlaceholder}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="ml-1 mb-1 block text-sm font-medium text-textSub">{t.cloud.form.year}</label>
+                <input
+                  type="text"
+                  value={workFormYear}
+                  onChange={(e) => setWorkFormYear(e.target.value)}
+                  className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-lg font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
+                  placeholder={t.cloud.form.yearPlaceholder}
+                />
+              </div>
+              <div>
+                <label className="ml-1 mb-1 block text-sm font-medium text-textSub">{t.cloud.form.edition}</label>
+                <input
+                  type="text"
+                  value={workFormEdition}
+                  onChange={(e) => setWorkFormEdition(e.target.value)}
+                  className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-lg font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
+                  placeholder={t.cloud.form.editionPlaceholder}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <button
+            onClick={handleSaveWork}
+            disabled={!workFormTitle || isUploading}
+            className={`flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-lg font-bold text-white shadow-lg transition-transform active:scale-[0.98] ${workFormTitle && !isUploading ? 'bg-oldGold shadow-oldGold/30 hover:bg-[#d4ac26]' : 'bg-gray-300 cursor-not-allowed'}`}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 size={20} className="animate-spin" />
+                {t.cloud.uploading}
+              </>
+            ) : (
+              t.cloud.save
+            )}
+          </button>
         </div>
       </Modal>
 
@@ -921,113 +897,106 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       <Modal
         isOpen={showRecordingModal}
         onClose={() => setShowRecordingModal(false)}
-        variant="bottom"
-        title={editingRecordingId ? "Edit Recording" : "Add Recording"}
+        variant="center"
       >
-        <div className="px-6 pt-6 pb-32">
-          {/* Audio Upload Section */}
-          <section className="mb-8">
-            <input
-              type="file"
-              ref={recFileInputRef}
-              accept="audio/*,.mp3,.wav,.flac,.m4a,.aac"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setRecFormFile(file);
-              }}
-            />
-            <div
-              onClick={() => recFileInputRef.current?.click()}
-              className={`
-                flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all
-                ${recFormFile ? 'border-oldGold bg-oldGold/5' : 'border-gray-300 hover:border-oldGold/50'}
-              `}
-            >
-              {recFormFile ? (
-                <>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-oldGold/10 text-oldGold mb-3">
-                    <Check size={28} />
-                  </div>
-                  <p className="text-textMain font-semibold text-center">{recFormFile.name}</p>
-                  <p className="text-textSub text-sm mt-1">点击更换文件</p>
-                </>
-              ) : (
-                <>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 mb-3">
-                    <Music size={28} />
-                  </div>
-                  <p className="text-textMain font-semibold">选择音频文件</p>
-                  <p className="text-textSub text-sm mt-1">支持 MP3、WAV、FLAC 等格式</p>
-                </>
-              )}
-            </div>
-          </section>
+        <div className="flex flex-col font-sans">
+          <h3 className="text-xl font-bold text-textMain mb-5 font-serif text-center">{editingRecordingId ? '编辑录音' : '添加录音'}</h3>
 
-          <div className="flex flex-col gap-6 font-sans">
-            <div className="group relative">
-              <label className="ml-1 mb-1 block text-sm font-medium text-textSub">Title</label>
+          {/* Audio Upload */}
+          <input
+            type="file"
+            ref={recFileInputRef}
+            accept="audio/*,.mp3,.wav,.flac,.m4a,.aac"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setRecFormFile(file);
+            }}
+          />
+          <div
+            onClick={() => recFileInputRef.current?.click()}
+            className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-all mb-5 ${recFormFile ? 'border-oldGold bg-oldGold/5' : 'border-gray-300 hover:border-oldGold/50'}`}
+          >
+            {recFormFile ? (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-oldGold/10 text-oldGold mb-2">
+                  <Check size={22} />
+                </div>
+                <p className="text-textMain font-semibold text-sm text-center truncate max-w-full">{recFormFile.name}</p>
+                <p className="text-textSub text-xs mt-0.5">点击更换文件</p>
+              </>
+            ) : (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400 mb-2">
+                  <Music size={22} />
+                </div>
+                <p className="text-textMain font-semibold text-sm">选择音频文件</p>
+                <p className="text-textSub text-xs mt-0.5">MP3, WAV, FLAC</p>
+              </>
+            )}
+          </div>
+
+          {/* Form Fields */}
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="ml-1 mb-1 block text-sm font-medium text-textSub">{t.cloud.form.title}</label>
               <input
                 type="text"
                 value={recFormTitle}
                 onChange={(e) => setRecFormTitle(e.target.value)}
-                className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
-                placeholder="e.g. Ballade No. 1"
+                className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-lg font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
+                placeholder={t.cloud.form.titlePlaceholder}
               />
             </div>
-            <div className="group relative">
-              <label className="ml-1 mb-1 block text-sm font-medium text-textSub">Performer</label>
+            <div>
+              <label className="ml-1 mb-1 block text-sm font-medium text-textSub">{t.cloud.form.performer}</label>
               <input
                 type="text"
                 value={recFormPerformer}
                 onChange={(e) => setRecFormPerformer(e.target.value)}
-                className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
-                placeholder="e.g. Krystian Zimerman"
+                className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-lg font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
+                placeholder={t.cloud.form.performerPlaceholder}
               />
             </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="group relative">
-                <label className="ml-1 mb-1 block text-sm font-medium text-textSub">Year</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="ml-1 mb-1 block text-sm font-medium text-textSub">{t.cloud.form.year}</label>
                 <input
                   type="text"
                   value={recFormYear}
                   onChange={(e) => setRecFormYear(e.target.value)}
-                  className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
-                  placeholder="1987"
+                  className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-lg font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
+                  placeholder={t.cloud.form.yearPlaceholder}
                 />
               </div>
-              <div className="group relative">
-                <label className="ml-1 mb-1 block text-sm font-medium text-textSub">Duration</label>
+              <div>
+                <label className="ml-1 mb-1 block text-sm font-medium text-textSub">{t.cloud.form.duration}</label>
                 <input
                   type="text"
                   value={recFormDuration}
                   onChange={(e) => setRecFormDuration(e.target.value)}
-                  className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-xl font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
-                  placeholder="9:15"
+                  className="w-full border-0 border-b border-gray-300 bg-transparent px-1 py-2 text-lg font-medium text-textMain placeholder-gray-300 focus:border-oldGold focus:ring-0 transition-colors"
+                  placeholder={t.cloud.form.durationPlaceholder}
                 />
               </div>
             </div>
           </div>
 
-          <div className="fixed bottom-0 left-0 w-full bg-gradient-to-t from-background via-background/95 to-transparent px-6 pb-8 pt-12 z-20">
-            <button
-              onClick={handleSaveRecording}
-              disabled={!recFormTitle || isRecUploading}
-              className={`
-                    flex w-full items-center justify-center gap-2 rounded-full py-4 text-lg font-bold text-white shadow-lg transition-transform active:scale-[0.98]
-                    ${recFormTitle && !isRecUploading ? 'bg-oldGold shadow-oldGold/30 hover:bg-[#d4ac26]' : 'bg-gray-300 cursor-not-allowed'}
-                `}
-            >
-              {isRecUploading ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  上传中...
-                </>
-              ) : (
-                editingRecordingId ? "保存更改" : "保存到曲库"
-              )}
-            </button>
-          </div>
+          {/* Save Button */}
+          <button
+            onClick={handleSaveRecording}
+            disabled={!recFormTitle || isRecUploading}
+            className={`flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-lg font-bold text-white shadow-lg transition-transform active:scale-[0.98] ${recFormTitle && !isRecUploading ? 'bg-oldGold shadow-oldGold/30 hover:bg-[#d4ac26]' : 'bg-gray-300 cursor-not-allowed'}`}
+          >
+            {isRecUploading ? (
+              <>
+                <Loader2 size={20} className="animate-spin" />
+                {t.cloud.uploading}
+              </>
+            ) : (
+              t.cloud.save
+            )}
+          </button>
         </div>
       </Modal>
 
@@ -1038,7 +1007,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         variant="center"
       >
         <div className="flex flex-col items-center">
-          <h2 className="mb-8 text-2xl font-serif font-bold text-textMain tracking-tight">Update Portrait</h2>
+          <h2 className="mb-8 text-2xl font-serif font-bold text-textMain tracking-tight">{t.cloud.updatePortrait}</h2>
 
           {/* Hidden file input */}
           <input
@@ -1078,7 +1047,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
               className={`flex w-full items-center justify-center rounded-full bg-oldGold py-3.5 text-[15px] font-bold text-white shadow-md transition-all ${isAvatarUploading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90 active:scale-[0.98]'
                 }`}
             >
-              {isAvatarUploading ? '上传中...' : 'Choose from Device'}
+              {isAvatarUploading ? t.cloud.uploading : t.cloud.chooseFromDevice}
             </button>
             <button
               onClick={handleRestoreDefaultAvatar}
@@ -1086,7 +1055,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
               className={`flex w-full items-center justify-center rounded-full py-2 text-[15px] font-medium text-oldGold transition-colors ${isAvatarUploading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80 active:scale-[0.98]'
                 }`}
             >
-              Restore Default Sketch
+              {t.cloud.restoreDefault}
             </button>
           </div>
         </div>

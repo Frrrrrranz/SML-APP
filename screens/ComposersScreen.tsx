@@ -68,8 +68,8 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
 
     setIsUploading(true);
     try {
-      // NOTE: 先用默认头像创建作曲家，获取 ID 后再上传自定义头像
-      const defaultImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=256`;
+      // NOTE: 使用固定占位符图片，避免基于名字的头像在改名后不同步
+      const defaultImage = '/composer-placeholder.png';
 
       const newComposer = {
         name,
