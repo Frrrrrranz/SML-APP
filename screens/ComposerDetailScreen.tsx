@@ -106,6 +106,12 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
   if (!composer) return <div className="p-8 text-center text-gray-500">Composer not found</div>;
 
+  // NOTE: 将 ui-avatars.com 默认头像自动替换为固定占位符，确保已有数据也能正确显示
+  const resolveAvatar = (url?: string) => {
+    if (!url || url.includes('ui-avatars.com')) return '/composer-placeholder.png';
+    return url;
+  };
+
   // --- Handlers: General ---
   const handleToggleEdit = () => {
     setIsEditing(!isEditing);
@@ -457,13 +463,13 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           >
             <div className="relative h-44 w-44 rounded-full shadow-lg overflow-hidden border-4 border-white bg-gray-200 ring-1 ring-black/5">
               <img
-                src={composer.image}
+                src={resolveAvatar(composer.image)}
                 alt={composer.name}
                 className="w-full h-full object-cover"
               />
               {isEditing && (
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center animate-in fade-in duration-200">
-                  <Camera className="text-white drop-shadow-md" size={32} />
+                <div className="absolute inset-0 bg-gray-200 flex items-center justify-center animate-in fade-in duration-200">
+                  <Camera className="text-oldGold drop-shadow-md" size={32} />
                 </div>
               )}
             </div>
@@ -1020,7 +1026,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
           <div className="relative mb-8 size-60 rounded-full overflow-hidden shadow-lg ring-1 ring-black/5">
             <img
-              src={composer.image}
+              src={resolveAvatar(composer.image)}
               className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
             />
             {/* Loading overlay */}

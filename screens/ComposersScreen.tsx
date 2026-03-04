@@ -177,7 +177,7 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
                   <div className="shrink-0 relative">
                     <div className="bg-[#F0F0EB] aspect-square rounded-full size-16 overflow-hidden shadow-inner ring-1 ring-black/5">
                       <img
-                        src={composer.image}
+                        src={composer.image?.includes('ui-avatars.com') ? '/composer-placeholder.png' : (composer.image || '/composer-placeholder.png')}
                         alt={composer.name}
                         className="h-full w-full object-cover grayscale sepia-[.3] contrast-[1.1] opacity-90 mix-blend-multiply"
                       />
