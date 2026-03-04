@@ -451,8 +451,8 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                 </div>
                             )}
                             {isEditing && (
-                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center animate-in fade-in duration-200">
-                                    <Camera className="text-white drop-shadow-md" size={32} />
+                                <div className="absolute inset-0 bg-gray-200 flex items-center justify-center animate-in fade-in duration-200">
+                                    <Camera className="text-oldGold drop-shadow-md" size={32} />
                                 </div>
                             )}
                         </div>
@@ -726,7 +726,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 variant="bottom"
                 title={editingWorkId ? t.cloud.editWork : t.cloud.addWork}
             >
-                <div className="px-6 pt-4 pb-32 min-h-full">
+                <div className="flex flex-col px-6 pt-4 pb-32" style={{ minHeight: 'calc(92vh - 80px)' }}>
                     {/* PDF Upload Section */}
                     <section className="mb-10">
                         <h3 className="mb-5 text-2xl font-bold tracking-tight text-textMain font-serif">{t.cloud.form.selectFile}</h3>
@@ -829,7 +829,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 variant="bottom"
                 title={editingRecordingId ? t.cloud.editRecording : t.cloud.addRecording}
             >
-                <div className="px-6 pt-6 pb-32 min-h-full">
+                <div className="flex flex-col px-6 pt-6 pb-32" style={{ minHeight: 'calc(92vh - 80px)' }}>
                     {/* Audio Upload Section */}
                     <section className="mb-8">
                         <input
