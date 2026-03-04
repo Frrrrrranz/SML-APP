@@ -28,7 +28,7 @@ Rename-Item dist_0.0.0.zip web-bundle.zip
 4. 使用 GitHub CLI 创建 Release 并上传 zip
 
 ```bash
-gh release create web-v<新版本号> web-bundle.zip --title "Web Update v<新版本号>" --notes "<更新说明>" --repo Frrrrrranz/SML-APP
+gh release create web-v<新版本号> web-bundle.zip --title "Web Update v<新版本号>" --notes "<更新说明>" --prerelease --repo Frrrrrranz/SML-APP
 ```
 
 5. 清理临时文件
