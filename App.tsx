@@ -13,6 +13,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { AiChatScreen } from './screens/AiChatScreen';
 import { AuthScreen } from './screens/AuthScreen';
 import { CloudLibraryScreen } from './screens/CloudLibraryScreen';
+import { CloudComposerDetailScreen } from './screens/CloudComposerDetailScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { Composer } from './types';
@@ -174,6 +175,10 @@ const AppContent: React.FC = () => {
                 element={<CloudLibraryScreen />}
               />
               <Route
+                path="/cloud/:id"
+                element={<CloudDetailWrapper />}
+              />
+              <Route
                 path="/ai-chat"
                 element={<AiChatScreen />}
               />
@@ -239,6 +244,18 @@ const DetailWrapper = ({
       onUpdateComposer={onUpdateComposer}
       onDeleteComposer={onDeleteComposer}
       onBack={() => navigate(-1)}
+    />
+  );
+};
+
+// 云端详情页路由包装器
+const CloudDetailWrapper = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  return (
+    <CloudComposerDetailScreen
+      composerId={id || ''}
+      onBack={() => navigate('/cloud')}
     />
   );
 };

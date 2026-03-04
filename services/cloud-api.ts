@@ -1,4 +1,13 @@
 import { supabase } from '../supabase';
+import {
+    uploadSheetMusic,
+    uploadAvatar,
+    uploadRecordingFile,
+    deleteSheetMusic,
+    deleteAvatar,
+    deleteRecordingFile,
+} from '../supabase';
+import { api } from '../api';
 import { Composer, Work, Recording } from '../types';
 import {
     dbCreateComposer,
@@ -466,3 +475,33 @@ const getMimeType = (ext: string): string => {
     };
     return mimeMap[ext] || 'application/octet-stream';
 };
+
+// =============================================
+// 云端编辑 CRUD（仅 admin 使用）
+// NOTE: 复用 api.ts 的 Supabase CRUD 接口，为云端编辑提供独立的命名空间
+// =============================================
+
+// --- Composers ---
+export const cloudCreateComposer = api.createComposer;
+export const cloudUpdateComposer = api.updateComposer;
+export const cloudDeleteComposer = api.deleteComposer;
+
+// --- Works ---
+export const cloudCreateWork = api.createWork;
+export const cloudUpdateWork = api.updateWork;
+export const cloudDeleteWork = api.deleteWork;
+export const cloudUploadWorkFile = api.uploadWorkFile;
+
+// --- Recordings ---
+export const cloudCreateRecording = api.createRecording;
+export const cloudUpdateRecording = api.updateRecording;
+export const cloudDeleteRecording = api.deleteRecording;
+export const cloudUploadRecordingFileUrl = api.uploadRecordingFileUrl;
+
+// --- 文件上传（直接使用 supabase.ts 的函数） ---
+export const cloudUploadSheetMusic = uploadSheetMusic;
+export const cloudUploadAvatar = uploadAvatar;
+export const cloudUploadRecordingFile = uploadRecordingFile;
+export const cloudDeleteSheetMusic = deleteSheetMusic;
+export const cloudDeleteAvatar = deleteAvatar;
+export const cloudDeleteRecordingFile = deleteRecordingFile;
