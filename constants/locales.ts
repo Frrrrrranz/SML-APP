@@ -175,6 +175,7 @@ export const translations = {
             deselectAll: '取消全选',
             confirmPush: '确认推送',
             noneSelected: '请至少选择一个作曲家',
+            loading: '加载中...',
             // 云端编辑（admin）
             manage: '管理',
             addComposer: '添加作曲家',
@@ -411,6 +412,7 @@ export const translations = {
             deselectAll: 'Deselect All',
             confirmPush: 'Confirm Push',
             noneSelected: 'Please select at least one composer',
+            loading: 'Loading...',
             // Cloud editing (admin)
             manage: 'Manage',
             addComposer: 'Add Composer',

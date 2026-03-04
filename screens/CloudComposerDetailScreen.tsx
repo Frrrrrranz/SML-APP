@@ -53,6 +53,10 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     const [isAnimating, setIsAnimating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
+    // 编辑模式下的本地输入状态（避免每次按键都调用 API）
+    const [editName, setEditName] = useState('');
+    const [editPeriod, setEditPeriod] = useState('');
+
     // Modal States
     const [showWorkModal, setShowWorkModal] = useState(false);
     const [showRecordingModal, setShowRecordingModal] = useState(false);
@@ -107,7 +111,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-10 h-10 border-4 border-oldGold border-t-transparent rounded-full animate-spin" />
-                    <p className="text-textSub">{t.cloud.saving}</p>
+                    <p className="text-textSub">{t.cloud.loading}</p>
                 </div>
             </div>
         );
@@ -130,17 +134,33 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
 
     // --- Handlers: General ---
     const handleToggleEdit = () => {
+        if (!isEditing && composer) {
+            // 进入编辑模式：初始化本地输入状态
+            setEditName(composer.name);
+            setEditPeriod(composer.period);
+        }
+        if (isEditing && composer) {
+            // 退出编辑模式：保存未提交的修改
+            saveInfoIfChanged();
+        }
         setIsEditing(!isEditing);
     };
 
-    const handleUpdateInfo = async (field: 'name' | 'period', value: string) => {
+    // NOTE: 仅在失焦或退出编辑时调用 API，避免每次按键都发请求
+    const saveInfoIfChanged = async () => {
+        if (!composer) return;
+        const updates: Record<string, string> = {};
+        if (editName !== composer.name) updates.name = editName;
+        if (editPeriod !== composer.period) updates.period = editPeriod;
+        if (Object.keys(updates).length === 0) return;
+
         try {
-            const updated = await cloudUpdateComposer(composer.id, { [field]: value });
+            await cloudUpdateComposer(composer.id, updates);
+            // 直接用本地值更新，不依赖 API 返回值覆盖其他字段
             setComposer({
                 ...composer,
-                ...updated,
-                works: composer.works || [],
-                recordings: composer.recordings || [],
+                name: editName,
+                period: editPeriod,
             });
         } catch (err) {
             console.error('Failed to update cloud composer info:', err);
@@ -443,15 +463,17 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-3">
                                 <input
                                     type="text"
-                                    value={composer.name}
-                                    onChange={(e) => handleUpdateInfo('name', e.target.value)}
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    onBlur={saveInfoIfChanged}
                                     className="w-full text-center text-3xl font-serif font-bold text-textMain bg-transparent border-b border-oldGold/50 focus:border-oldGold focus:outline-none pb-1"
                                     placeholder={t.cloud.form.namePlaceholder}
                                 />
                                 <input
                                     type="text"
-                                    value={composer.period}
-                                    onChange={(e) => handleUpdateInfo('period', e.target.value)}
+                                    value={editPeriod}
+                                    onChange={(e) => setEditPeriod(e.target.value)}
+                                    onBlur={saveInfoIfChanged}
                                     className="w-full text-center text-xs font-sans font-bold tracking-widest text-textSub uppercase bg-transparent border-b border-oldGold/50 focus:border-oldGold focus:outline-none pb-1"
                                     placeholder={t.cloud.form.periodPlaceholder}
                                 />
