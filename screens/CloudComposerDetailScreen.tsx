@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { ViewMode, Composer, Work, Recording } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { fadeInUp, staggerContainer, listItemSlide, fabAnimation, tabContent } from '../utils/animations';
 import {
@@ -40,6 +41,8 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     onBack,
 }) => {
     const { t } = useLanguage();
+    const { profile } = useAuth();
+    const isAdmin = profile?.role === 'admin';
 
     // 作曲家数据
     const [composer, setComposer] = useState<Composer | null>(null);
@@ -393,12 +396,12 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 >
                     <ChevronLeft size={28} />
                 </button>
-                <button
+                {isAdmin && <button
                     onClick={handleToggleEdit}
                     className={`px-3 py-1 text-base font-semibold transition-colors duration-200 ${isEditing ? 'text-textMain' : 'text-oldGold hover:opacity-80'}`}
                 >
                     {isEditing ? t.cloud.done : t.cloud.editComposer}
-                </button>
+                </button>}
             </div>
 
             <div className="flex-1">
@@ -649,8 +652,8 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 )}
             </div>
 
-            {/* FAB */}
-            <motion.button
+            {/* FAB - 仅 admin 显示 */}
+            {isAdmin && <motion.button
                 onClick={viewMode === 'Sheet Music' ? openAddWorkModal : openAddRecordingModal}
                 className="fixed bottom-24 left-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20"
                 initial={{ scale: 0, opacity: 0 }}
@@ -659,7 +662,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 {...fabAnimation}
             >
                 <Plus size={28} />
-            </motion.button>
+            </motion.button>}
 
             {/* === MODALS === */}
 
@@ -701,7 +704,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 variant="bottom"
                 title={editingWorkId ? t.cloud.editWork : t.cloud.addWork}
             >
-                <div className="px-6 pt-4 pb-32">
+                <div className="px-6 pt-4 pb-32 min-h-full">
                     {/* PDF Upload Section */}
                     <section className="mb-10">
                         <h3 className="mb-5 text-2xl font-bold tracking-tight text-textMain font-serif">{t.cloud.form.selectFile}</h3>
@@ -804,7 +807,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 variant="bottom"
                 title={editingRecordingId ? t.cloud.editRecording : t.cloud.addRecording}
             >
-                <div className="px-6 pt-6 pb-32">
+                <div className="px-6 pt-6 pb-32 min-h-full">
                     {/* Audio Upload Section */}
                     <section className="mb-8">
                         <input

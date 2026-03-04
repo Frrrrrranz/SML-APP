@@ -196,12 +196,10 @@ export const CloudLibraryScreen: React.FC = () => {
                                 className="bg-white rounded-xl overflow-hidden shadow-soft border border-gray-100"
                             >
                                 <div
-                                    className={`flex items-center gap-4 p-4 ${isAdmin ? 'cursor-pointer hover:bg-black/[0.02] transition-colors' : ''}`}
+                                    className="flex items-center gap-4 p-4 cursor-pointer hover:bg-black/[0.02] transition-colors"
                                     onClick={() => {
-                                        // NOTE: Admin 点击进入云端编辑详情页
-                                        if (isAdmin) {
-                                            navigate(`/cloud/${composer.id}`);
-                                        }
+                                        // NOTE: 所有用户都可点击进入详情页，非 admin 为只读模式
+                                        navigate(`/cloud/${composer.id}`);
                                     }}
                                 >
                                     {/* 头像 */}
