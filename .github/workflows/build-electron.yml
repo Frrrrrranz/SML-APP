@@ -5,6 +5,10 @@ on:
     tags:
       - 'desktop-v*'
 
+# NOTE: 需要写入权限以创建 GitHub Release
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest

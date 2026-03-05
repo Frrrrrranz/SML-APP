@@ -18,13 +18,13 @@ win:
   target:
     - nsis
     - zip
+  # NOTE: electron-builder 会自动将 256x256 PNG 转为 ICO
   icon: electron/icon.png
 nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  installerIcon: electron/icon.png
-  uninstallerIcon: electron/icon.png
+  # NOTE: 不单独指定 installerIcon/uninstallerIcon，让 electron-builder 自动使用 win.icon
 publish:
   provider: github
   owner: Frrrrrranz
