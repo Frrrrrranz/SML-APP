@@ -25,6 +25,7 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   # NOTE: 不单独指定 installerIcon/uninstallerIcon，让 electron-builder 自动使用 win.icon
+# NOTE: publish 配置供 electron-updater 运行时读取，实际发布由 CI 统一处理
 publish:
   provider: github
   owner: Frrrrrranz
