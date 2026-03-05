@@ -1,0 +1,44 @@
+name: Security Test (Temporary)
+
+# NOTE: 手动触发，用于验证 GitHub Secrets 脱敏机制
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-secret-masking:
+    name: Test Secret Masking
+    runs-on: ubuntu-latest
+    environment: signing
+
+    steps:
+      # 测试 1：直接 echo secret
+      - name: Test direct echo
+        run: |
+          echo "Direct echo test:"
+          echo "${{ secrets.ANDROID_KEY_ALIAS }}"
+          echo "${{ secrets.ANDROID_KEY_STORE_PASSWORD }}"
+
+      # 测试 2：尝试通过变量间接泄露
+      - name: Test indirect echo via env
+        env:
+          MY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          MY_PASSWORD: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+        run: |
+          echo "Indirect echo test:"
+          echo "$MY_ALIAS"
+          echo "$MY_PASSWORD"
+
+      # 测试 3：尝试通过 base64 编码绕过脱敏
+      - name: Test base64 bypass attempt
+        run: |
+          echo "Base64 bypass test:"
+          echo "${{ secrets.ANDROID_KEY_ALIAS }}" | base64
+
+      # 测试 4：尝试逐字符输出绕过
+      - name: Test char-by-char bypass attempt
+        run: |
+          echo "Char-by-char test:"
+          echo "${{ secrets.ANDROID_KEY_ALIAS }}" | sed 's/./& /g'
