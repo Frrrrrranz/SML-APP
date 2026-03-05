@@ -1,0 +1,31 @@
+appId: com.sml.desktop
+productName: SML
+# NOTE: 使用 electron/dist 作为入口，而非根目录
+directories:
+  buildResources: electron
+  output: release
+files:
+  - dist/**/*
+  - electron/dist/**/*
+  - electron/icon.png
+  - electron/package.json
+  - node_modules/better-sqlite3/**/*
+# NOTE: better-sqlite3 包含原生模块，不能打进 asar 包
+asar: true
+asarUnpack:
+  - node_modules/better-sqlite3/**/*
+win:
+  target:
+    - nsis
+    - zip
+  icon: electron/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: electron/icon.png
+  uninstallerIcon: electron/icon.png
+publish:
+  provider: github
+  owner: Frrrrrranz
+  repo: SML-APP

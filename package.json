@@ -3,11 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/dist/main.js",
   "scripts": {
     "dev": "vite",
     "start": "concurrently --names \"前端,后端\" --prefix-colors \"cyan,yellow\" \"npm run dev\" \"cd backend && python -m uvicorn main:app --reload --port 8000\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:compile": "tsc -p electron/tsconfig.json",
+    "dev:electron": "npm run build && npm run electron:compile && electron electron/dist/main.js --dev",
+    "build:electron": "npm run build && npm run electron:compile && electron-builder"
   },
   "dependencies": {
     "@capacitor-community/sqlite": "^8.0.0",
@@ -33,9 +37,14 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "better-sqlite3": "^11.8.1",
     "concurrently": "^9.2.1",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "electron-updater": "^6.8.3",
     "tailwindcss": "^4.2.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Preferences } from '@capacitor/preferences';
 import { localApi, localUploadSheetMusic, localUploadAvatar, localUploadRecordingFile, localDeleteSheetMusic, localDeleteAvatar, localDeleteRecordingFile } from '../services/local-api';
 import { initDatabase } from '../services/local-database';
-import { Capacitor } from '@capacitor/core';
+import { isNative, isAndroid } from '../services/platform';
 // NOTE: 云端存储暂时不开放，仅使用本地存储
 // import { api } from '../api';
 // import { uploadSheetMusic, uploadAvatar, ... } from '../supabase';
@@ -43,7 +43,8 @@ export const StorageProvider: React.FC<{ children: ReactNode }> = ({ children })
     // NOTE: 当前版本强制使用本地存储模式，云端功能暂未开放
     const [storageMode, setStorageModeState] = useState<StorageMode>('local');
     const [dbReady, setDbReady] = useState(false);
-    const isNativeApp = Capacitor.isNativePlatform();
+    // NOTE: isNative() 在 Android 和 Electron 下均返回 true
+    const isNativeApp = isNative();
 
     // 初始化：启动本地数据库
     useEffect(() => {
@@ -73,7 +74,12 @@ export const StorageProvider: React.FC<{ children: ReactNode }> = ({ children })
         }
 
         setStorageModeState(mode);
-        await Preferences.set({ key: STORAGE_MODE_KEY, value: mode });
+        // NOTE: Preferences 仅在 Android 上可用，Electron 使用 localStorage 作为替代
+        if (isAndroid()) {
+            await Preferences.set({ key: STORAGE_MODE_KEY, value: mode });
+        } else {
+            localStorage.setItem(STORAGE_MODE_KEY, mode);
+        }
     };
 
     // NOTE: 当前版本仅使用本地存储操作

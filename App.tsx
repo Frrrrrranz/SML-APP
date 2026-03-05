@@ -5,6 +5,7 @@ import { HashRouter, Routes, Route, useLocation, useNavigate, useParams } from '
 import { Analytics } from '@vercel/analytics/react';
 import { App as CapApp } from '@capacitor/app';
 import { BottomNav } from './components/BottomNav';
+import { SideNav } from './components/SideNav';
 import { UpdateModal } from './components/UpdateModal';
 import { ComposersScreen } from './screens/ComposersScreen';
 import { ComposerDetailScreen } from './screens/ComposerDetailScreen';
@@ -20,6 +21,7 @@ import { Composer } from './types';
 import { pageTransition } from './utils/animations';
 import { SplashScreen } from './screens/SplashScreen';
 import { checkForUpdate, downloadUpdate, applyUpdateAndReload, notifyAppReady } from './services/ota-update';
+import { isAndroid, isElectron } from './services/platform';
 
 
 
@@ -41,7 +43,9 @@ const AppContent: React.FC = () => {
   const [updateProgress, setUpdateProgress] = useState(0);
 
   // NOTE: 监听 Android 返回键/侧滑手势，实现原生导航体验
+  // Electron 不需要此功能，桌面端有原生窗口关闭按钮
   useEffect(() => {
+    if (!isAndroid()) return;
     const handler = CapApp.addListener('backButton', ({ canGoBack }) => {
       if (canGoBack && location.pathname !== '/') {
         navigate(-1);
@@ -60,8 +64,10 @@ const AppContent: React.FC = () => {
     }
   }, [location.pathname]);
 
-  // NOTE: 应用启动时静默检查 OTA 更新
+  // NOTE: 应用启动时静默检查 OTA 更新（仅 Android）
+  // Electron 使用 electron-updater 另行处理
   useEffect(() => {
+    if (!isAndroid()) return;
     const doCheck = async () => {
       try {
         const update = await checkForUpdate();
@@ -137,13 +143,26 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // NOTE: Electron 桌面端使用全宽 + 侧边栏布局；Android 保留原有的居中 480px + 底部导航
+  const electronMode = isElectron();
+
   return (
-    <div className="flex justify-center bg-[#E5E5E5]">
-      {/* 
-        Restricting width to simulate mobile app experience on desktop, 
-        but full width on mobile. 
-      */}
-      <div className="w-full max-w-[480px] bg-background min-h-screen shadow-2xl relative overflow-hidden">
+    <div className={electronMode ? 'flex bg-[#1a1a2e] min-h-screen' : 'flex justify-center bg-[#E5E5E5]'}>
+      {/* Electron 侧边栏导航 */}
+      {electronMode && !location.pathname.includes('/composer/') && (
+        <SideNav
+          currentPath={location.pathname}
+          onNavigate={(path) => navigate(path)}
+        />
+      )}
+
+      {/* 主内容区域 */}
+      <div className={`
+        ${electronMode
+          ? `flex-1 bg-background min-h-screen ${!location.pathname.includes('/composer/') ? 'ml-[220px]' : ''}`
+          : 'w-full max-w-[480px] bg-background min-h-screen shadow-2xl relative overflow-hidden'
+        }
+      `}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname.split('/')[1] || 'home'}
@@ -201,8 +220,8 @@ const AppContent: React.FC = () => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Conditionally render Nav based on path */}
-        {!location.pathname.includes('/composer/') && (
+        {/* Android 底部导航（Electron 不显示） */}
+        {!electronMode && !location.pathname.includes('/composer/') && (
           <BottomNav
             currentPath={location.pathname}
             onNavigate={(path) => navigate(path)}

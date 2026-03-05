@@ -1,5 +1,6 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { FileOpener } from '@capawesome-team/capacitor-file-opener';
+import { isElectron } from './platform';
 
 /**
  * 本地文件存储服务
@@ -20,6 +21,12 @@ type FileCategory = keyof typeof FILE_DIRS;
  * 确保目录存在
  */
 const ensureDir = async (dirPath: string): Promise<void> => {
+    // Electron 分支
+    if (isElectron()) {
+        await window.electronAPI!.mkdir(dirPath);
+        return;
+    }
+    // Android 分支 — 原有代码不变
     try {
         await Filesystem.mkdir({
             path: dirPath,
@@ -27,7 +34,6 @@ const ensureDir = async (dirPath: string): Promise<void> => {
             recursive: true,
         });
     } catch (error: unknown) {
-        // 目录已存在时会抛出错误，忽略即可
         const err = error as { message?: string };
         if (!err.message?.includes('exists')) {
             throw error;
@@ -57,6 +63,13 @@ export const saveLocalFile = async (
     // 将 File 对象转为 base64
     const base64Data = await fileToBase64(file);
 
+    // Electron 分支
+    if (isElectron()) {
+        await window.electronAPI!.writeFile(filePath, base64Data);
+        return filePath;
+    }
+
+    // Android 分支 — 原有代码不变
     await Filesystem.writeFile({
         path: filePath,
         data: base64Data,
@@ -73,13 +86,23 @@ export const saveLocalFile = async (
 export const deleteLocalFile = async (filePath: string): Promise<void> => {
     if (!filePath) return;
 
+    // Electron 分支
+    if (isElectron()) {
+        try {
+            await window.electronAPI!.deleteFile(filePath);
+        } catch (error) {
+            console.warn('Failed to delete local file (Electron):', filePath, error);
+        }
+        return;
+    }
+
+    // Android 分支 — 原有代码不变
     try {
         await Filesystem.deleteFile({
             path: filePath,
             directory: Directory.Data,
         });
     } catch (error) {
-        // 文件不存在时忽略错误
         console.warn('Failed to delete local file:', filePath, error);
     }
 };
@@ -93,13 +116,22 @@ export const deleteLocalFile = async (filePath: string): Promise<void> => {
 export const getLocalFileUri = async (filePath: string): Promise<string> => {
     if (!filePath) return '';
 
+    // Electron 分支：通过 IPC 获取 file:// URI
+    if (isElectron()) {
+        try {
+            return await window.electronAPI!.getFileUri(filePath);
+        } catch (error) {
+            console.warn('Failed to get file URI (Electron):', filePath, error);
+            return '';
+        }
+    }
+
+    // Android 分支 — 原有代码不变
     try {
         const result = await Filesystem.getUri({
             path: filePath,
             directory: Directory.Data,
         });
-        // NOTE: Android WebView 需要 Capacitor 的 convertFileSrc 来访问本地文件
-        // 但在 Capacitor 中，getUri 返回的路径已经可用
         return result.uri;
     } catch (error) {
         console.warn('Failed to get file URI:', filePath, error);
@@ -112,6 +144,11 @@ export const getLocalFileUri = async (filePath: string): Promise<string> => {
  * 用于需要直接操作文件内容的场景
  */
 export const readLocalFile = async (filePath: string): Promise<string> => {
+    // Electron 分支
+    if (isElectron()) {
+        return await window.electronAPI!.readFile(filePath);
+    }
+    // Android 分支 — 原有代码不变
     const result = await Filesystem.readFile({
         path: filePath,
         directory: Directory.Data,
@@ -138,12 +175,20 @@ export const getStorageUsage = async (): Promise<{
 
     for (const [category, dir] of Object.entries(FILE_DIRS)) {
         try {
-            const result = await Filesystem.readdir({
-                path: dir,
-                directory: Directory.Data,
-            });
+            let files: { name: string; size: number }[] = [];
 
-            const files = result.files || [];
+            // Electron 分支
+            if (isElectron()) {
+                files = await window.electronAPI!.readdir(dir);
+            } else {
+                // Android 分支 — 原有逻辑不变
+                const result = await Filesystem.readdir({
+                    path: dir,
+                    directory: Directory.Data,
+                });
+                files = (result.files || []).map(f => ({ name: f.name, size: f.size || 0 }));
+            }
+
             const categoryKey = category as FileCategory;
             usage[categoryKey].count = files.length;
             usage[categoryKey].size = files.reduce((sum, f) => sum + (f.size || 0), 0);
@@ -217,7 +262,14 @@ export const openWithSystemApp = async (filePath: string): Promise<void> => {
         return;
     }
 
-    // 本地文件：获取真实 URI
+    // Electron 分支：通过 IPC 调用 shell.openPath
+    if (isElectron()) {
+        console.log('[openWithSystemApp] Opening via Electron IPC');
+        await window.electronAPI!.openFile(filePath);
+        return;
+    }
+
+    // Android 分支 — 原有代码不变
     const result = await Filesystem.getUri({
         path: filePath,
         directory: Directory.Data,
@@ -225,12 +277,10 @@ export const openWithSystemApp = async (filePath: string): Promise<void> => {
     const fileUri = result.uri;
     console.log('[openWithSystemApp] File URI:', fileUri);
 
-    // 推断 MIME 类型
     const ext = filePath.split('.').pop()?.toLowerCase() || '';
     const mimeType = getMimeType(ext);
     console.log('[openWithSystemApp] MIME type:', mimeType);
 
-    // 调用 FileOpener 插件，触发系统「选择应用打开」对话框
     await FileOpener.openFile({
         path: fileUri,
         mimeType,
