@@ -173,14 +173,22 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
                   whileTap={{ scale: 0.98 }}
                   className="group flex items-center gap-5 p-4 cursor-pointer rounded-xl"
                 >
-                  {/* Image */}
+                  {/* Image - 无头像时显示首字母，不使用占位图 */}
                   <div className="shrink-0 relative">
                     <div className="bg-[#F0F0EB] aspect-square rounded-full size-16 overflow-hidden shadow-inner ring-1 ring-black/5">
-                      <img
-                        src={composer.image?.includes('ui-avatars.com') ? '/composer-placeholder.png' : (composer.image || '/composer-placeholder.png')}
-                        alt={composer.name}
-                        className="h-full w-full object-cover grayscale sepia-[.3] contrast-[1.1] opacity-90 mix-blend-multiply"
-                      />
+                      {composer.image && !composer.image.includes('ui-avatars.com') && composer.image !== '/composer-placeholder.png' ? (
+                        <img
+                          src={composer.image}
+                          alt={composer.name}
+                          className="h-full w-full object-cover grayscale sepia-[.3] contrast-[1.1] opacity-90 mix-blend-multiply"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-oldGold/10">
+                          <span className="text-2xl font-serif font-bold text-oldGold">
+                            {composer.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

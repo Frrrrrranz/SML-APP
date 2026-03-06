@@ -106,11 +106,8 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
   if (!composer) return <div className="p-8 text-center text-gray-500">Composer not found</div>;
 
-  // NOTE: 将 ui-avatars.com 默认头像自动替换为固定占位符，确保已有数据也能正确显示
-  const resolveAvatar = (url?: string) => {
-    if (!url || url.includes('ui-avatars.com')) return '/composer-placeholder.png';
-    return url;
-  };
+  // NOTE: 居中展示首字母头像，与云端保持一致。若存在自定义头像 URL 则展示图片，否则展示首字母。
+  const hasCustomAvatar = !!(composer.image && !composer.image.includes('ui-avatars.com') && composer.image !== '/composer-placeholder.png');
 
   // --- Handlers: General ---
   const handleToggleEdit = () => {
@@ -462,11 +459,19 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             onClick={() => isEditing ? setShowPortraitModal(true) : null}
           >
             <div className="relative h-44 w-44 rounded-full shadow-lg overflow-hidden border-4 border-white bg-gray-200 ring-1 ring-black/5">
-              <img
-                src={resolveAvatar(composer.image)}
-                alt={composer.name}
-                className="w-full h-full object-cover"
-              />
+              {hasCustomAvatar ? (
+                <img
+                  src={composer.image!}
+                  alt={composer.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-oldGold/10">
+                  <span className="text-5xl font-serif text-oldGold">
+                    {composer.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
               {isEditing && (
                 <div className="absolute inset-0 bg-gray-200 flex items-center justify-center animate-in fade-in duration-200">
                   <Camera className="text-oldGold drop-shadow-md" size={32} />
@@ -475,9 +480,10 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             </div>
           </div>
 
-          <div className="text-center space-y-2 w-full max-w-xs">
+          {/* NOTE: min-h 保证编辑态与非编辑态等高，防止切换时页面高度跳变 */}
+          <div className="text-center w-full max-w-xs min-h-[80px] flex flex-col items-center justify-center">
             {isEditing ? (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-3">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-3 w-full">
                 <input
                   type="text"
                   value={composer.name}
@@ -686,7 +692,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         </div>
 
         {/* Delete Composer Button - 编辑模式下显示 */}
-        {isEditing && (
+        {isEditing ? (
           <div className="px-6 py-8 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -695,17 +701,17 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
               {t.composers.detail.deleteComposer}
             </button>
           </div>
+        ) : (
+          // NOTE: 版权声明内联到内容列表底部，仅在非编辑模式显示，避免编辑模式下独立 footer 形成多余的阴影区域
+          <div className="px-6 pt-4 pb-12 text-center">
+            <p className="text-[11px] leading-relaxed text-textSub/40 font-sans mx-auto max-w-[280px]">
+              本站乐谱由用户上传，仅供个人学习、练习与研究使用。如有侵权，请联系管理员处理。部分乐谱来源于第三方网站，版权归原作者所有。
+            </p>
+          </div>
         )}
+
       </div>
 
-      {/* Global Copyright Notice (Bottom of screen) */}
-      <footer className="px-6 pt-4 pb-12 text-center">
-        <p className="text-[11px] leading-relaxed text-textSub/40 font-sans mx-auto max-w-[280px]">
-          本站乐谱由用户上传，仅供个人学习、练习与研究使用。如有侵权，请联系管理员处理。部分乐谱来源于第三方网站，版权归原作者所有。
-        </p>
-      </footer>
-
-      {/* FAB - Shows for both modes now */}
       {/* FAB - 带弹入动画 */}
       <motion.button
         onClick={viewMode === 'Sheet Music' ? openAddWorkModal : openAddRecordingModal}
@@ -1025,10 +1031,16 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           />
 
           <div className="relative mb-8 size-60 rounded-full overflow-hidden shadow-lg ring-1 ring-black/5">
-            <img
-              src={resolveAvatar(composer.image)}
-              className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
-            />
+            {hasCustomAvatar ? (
+              <img
+                src={composer.image!}
+                className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center bg-oldGold/10">
+                <span className="text-6xl font-serif text-oldGold">{composer.name.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
             {/* Loading overlay */}
             {isAvatarUploading && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">

@@ -62,6 +62,9 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     const [showRecordingModal, setShowRecordingModal] = useState(false);
     const [showPortraitModal, setShowPortraitModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showCopyrightModal, setShowCopyrightModal] = useState(false);
+    // NOTE: 非 admin 点击文件时先弹版权确认，确认后再打开文件
+    const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
 
     // Work Form States
     const [editingWorkId, setEditingWorkId] = useState<string | null>(null);
@@ -131,6 +134,20 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
             </div>
         );
     }
+
+    // --- Handlers: File Open ---
+    /**
+     * 处理文件打开：admin 直接打开，非 admin 先弹版权确认
+     * NOTE: 云端文件通过 window.open 在新标签页打开，无需系统应用
+     */
+    const handleOpenFile = (fileUrl: string) => {
+        if (isAdmin) {
+            window.open(fileUrl, '_blank');
+        } else {
+            setPendingFileUrl(fileUrl);
+            setShowCopyrightModal(true);
+        }
+    };
 
     // --- Handlers: General ---
     const handleToggleEdit = () => {
@@ -544,11 +561,11 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                 {composer.works && composer.works.map((work) => (
                                     <div
                                         key={work.id}
-                                        className={`group flex items-center gap-4 px-6 py-4 hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative overflow-hidden ${work.fileUrl ? 'cursor-pointer' : ''}`}
+                                        className={`group flex items-center gap-4 px-6 py-4 hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative overflow-hidden ${!isEditing && work.fileUrl ? 'cursor-pointer' : ''}`}
                                         onClick={() => {
-                                            // NOTE: 云端详情页点击乐谱直接在新标签页打开（如果有 URL）
+                                            // NOTE: 非 admin 用户点击乐谱先弹版权确认弹窗
                                             if (!isEditing && work.fileUrl) {
-                                                window.open(work.fileUrl, '_blank');
+                                                handleOpenFile(work.fileUrl);
                                             }
                                         }}
                                     >
@@ -606,10 +623,11 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                 {composer.recordings && composer.recordings.map((recording) => (
                                     <div
                                         key={recording.id}
-                                        className={`group flex items-center gap-4 px-6 py-4 hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative ${recording.fileUrl ? 'cursor-pointer' : ''}`}
+                                        className={`group flex items-center gap-4 px-6 py-4 hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative ${!isEditing && recording.fileUrl ? 'cursor-pointer' : ''}`}
                                         onClick={() => {
+                                            // NOTE: 非 admin 用户点击录音先弹版权确认弹窗
                                             if (!isEditing && recording.fileUrl) {
-                                                window.open(recording.fileUrl, '_blank');
+                                                handleOpenFile(recording.fileUrl);
                                             }
                                         }}
                                     >
@@ -969,6 +987,52 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                             className={`flex w-full items-center justify-center rounded-full py-2 text-[15px] font-medium text-oldGold transition-colors ${isAvatarUploading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80 active:scale-[0.98]'}`}
                         >
                             {t.cloud.restoreDefault}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Copyright Disclaimer Modal */}
+            <Modal
+                isOpen={showCopyrightModal}
+                onClose={() => setShowCopyrightModal(false)}
+                variant="center"
+            >
+                <div className="flex flex-col items-center text-center font-sans px-2">
+                    <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-oldGold/10 text-oldGold">
+                        <AlertCircle size={32} strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-xl font-bold text-textMain mb-4 font-serif">
+                        {t.common.copyright.title}
+                    </h3>
+                    <div className="space-y-4 text-textSub text-[15px] leading-relaxed mb-8">
+                        <p>{t.common.copyright.notice}</p>
+                        <p className="font-semibold text-textMain">
+                            {t.common.copyright.warning}
+                        </p>
+                    </div>
+                    <div className="flex flex-col w-full gap-3">
+                        <button
+                            onClick={() => {
+                                if (pendingFileUrl) {
+                                    // NOTE: 版权确认后在新标签页打开云端文件
+                                    window.open(pendingFileUrl, '_blank');
+                                    setShowCopyrightModal(false);
+                                    setPendingFileUrl(null);
+                                }
+                            }}
+                            className="w-full py-4 rounded-full font-bold text-white bg-oldGold hover:bg-[#d4ac26] transition-colors shadow-lg shadow-oldGold/20"
+                        >
+                            {t.common.copyright.agree}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowCopyrightModal(false);
+                                setPendingFileUrl(null);
+                            }}
+                            className="w-full py-4 rounded-full font-bold text-textSub hover:bg-gray-100 transition-colors"
+                        >
+                            {t.common.copyright.cancel}
                         </button>
                     </div>
                 </div>
