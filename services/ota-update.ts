@@ -1,4 +1,8 @@
-import { CapacitorUpdater, BundleInfo } from '@capgo/capacitor-updater';
+// NOTE: 动态导入 — @capgo/capacitor-updater 仅在 Android 上使用，
+// 顶层 import 在 Electron 环境会导致模块加载崩溃
+// import { CapacitorUpdater, BundleInfo } from '@capgo/capacitor-updater';
+
+
 import { WEB_VERSION, GITHUB_REPO } from '../constants/app-version';
 
 /**
@@ -8,6 +12,9 @@ import { WEB_VERSION, GITHUB_REPO } from '../constants/app-version';
  * ⚠️ 打包 zip 必须使用 capgo CLI（npx @capgo/cli bundle zip dist），
  * PowerShell Compress-Archive 生成的格式不兼容。
  */
+
+// NOTE: 替代顶层导入的 BundleInfo 类型，使其能接受 CapacitorUpdater.download 返回的任意对象
+type BundleInfo = { id: string;[key: string]: any };
 
 interface UpdateInfo {
     version: string;
@@ -103,6 +110,7 @@ export const downloadUpdate = async (
     try {
         onProgress?.(10);
 
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         const bundle = await CapacitorUpdater.download({
             url: downloadUrl,
             version: new Date().toISOString(),
@@ -133,6 +141,7 @@ export const applyUpdateAndReload = async (): Promise<void> => {
     }
 
     try {
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         // NOTE: set() 必须传入完整 BundleInfo 对象（download 返回值）
         await CapacitorUpdater.set(pendingBundle);
         // set() 会异步重载 WebView，后续代码作为降级保险
@@ -151,6 +160,7 @@ export const applyUpdateAndReload = async (): Promise<void> => {
  */
 export const notifyAppReady = async (): Promise<void> => {
     try {
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         await CapacitorUpdater.notifyAppReady();
     } catch (error) {
         // 首次安装或无 bundle 更新时可能报错，忽略即可
