@@ -9,6 +9,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { fadeInUp, staggerContainer, listItemSlide, fabAnimation, tabContent } from '../utils/animations';
+import { getComposerAvatarUrl } from '../utils/avatar';
 import {
     getCloudComposer,
     cloudCreateWork,
@@ -233,12 +234,11 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
             if (composer.image) {
                 await cloudDeleteAvatar(composer.image);
             }
-            // NOTE: 使用固定占位符图片，避免基于名字的头像在改名后出现不同步问题
-            const defaultImage = '/composer-placeholder.png';
-            const updated = await cloudUpdateComposer(composer.id, { image: defaultImage });
+            // NOTE: 恢复默认头像存空字符串，使用 getComposerAvatarUrl fallback
+            const updated = await cloudUpdateComposer(composer.id, { image: '' });
             setComposer({
                 ...composer,
-                image: updated.image || defaultImage,
+                image: updated.image || '',
                 works: composer.works || [],
                 recordings: composer.recordings || [],
             });
@@ -454,22 +454,20 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                         onClick={() => isEditing ? setShowPortraitModal(true) : null}
                     >
                         <div className="relative h-44 w-44 rounded-full shadow-lg overflow-hidden border-4 border-white bg-gray-200 ring-1 ring-black/5">
-                            {composer.image ? (
-                                <img
-                                    src={composer.image}
-                                    alt={composer.name}
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-oldGold/10">
-                                    <span className="text-5xl font-serif text-oldGold">
-                                        {composer.name.charAt(0)}
-                                    </span>
-                                </div>
-                            )}
+                            {/* NOTE: 与本地页和设置页一致，统一使用 ui-avatars.com 生成首字母头像 */}
+                            <img
+                                src={
+                                    composer.image && !composer.image.startsWith('/composer-placeholder')
+                                        ? composer.image
+                                        : getComposerAvatarUrl(composer.name)
+                                }
+                                alt={composer.name}
+                                className="w-full h-full object-cover"
+                            />
+                            {/* NOTE: 编辑模式下叠加半透明黑色遮罩 */}
                             {isEditing && (
-                                <div className="absolute inset-0 bg-gray-200 flex items-center justify-center animate-in fade-in duration-200">
-                                    <Camera className="text-oldGold drop-shadow-md" size={32} />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center animate-in fade-in duration-200">
+                                    <Camera className="text-white drop-shadow-md" size={32} />
                                 </div>
                             )}
                         </div>

@@ -8,6 +8,7 @@ import { getCloudComposers, pullComposerToLocal, cloudCreateComposer, cloudUploa
 import { Composer } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../components/Modal';
+import { getComposerAvatarUrl } from '../utils/avatar';
 
 /**
  * 云端资源库屏幕
@@ -202,21 +203,17 @@ export const CloudLibraryScreen: React.FC = () => {
                                         navigate(`/cloud/${composer.id}`);
                                     }}
                                 >
-                                    {/* 头像 */}
+                                    {/* 头像 - 与本地列表一致，统一使用 ui-avatars.com */}
                                     <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                                        {composer.image ? (
-                                            <img
-                                                src={composer.image}
-                                                alt={composer.name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-oldGold/10">
-                                                <span className="text-2xl font-serif text-oldGold">
-                                                    {composer.name.charAt(0)}
-                                                </span>
-                                            </div>
-                                        )}
+                                        <img
+                                            src={
+                                                composer.image && !composer.image.startsWith('/composer-placeholder')
+                                                    ? composer.image
+                                                    : getComposerAvatarUrl(composer.name)
+                                            }
+                                            alt={composer.name}
+                                            className="w-full h-full object-cover"
+                                        />
                                     </div>
 
                                     {/* 信息 */}
@@ -303,7 +300,7 @@ export const CloudLibraryScreen: React.FC = () => {
             {isAdmin && (
                 <motion.button
                     onClick={() => setShowAddModal(true)}
-                    className="fixed bottom-24 right-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20"
+                    className="fixed bottom-24 left-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20"
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.3, type: 'spring', stiffness: 400, damping: 20 }}
@@ -390,8 +387,8 @@ export const CloudLibraryScreen: React.FC = () => {
                         {addFormAvatarPreview ? (
                             <img src={addFormAvatarPreview} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-oldGold/10 group-hover:bg-oldGold/20 transition-colors">
-                                <Camera size={28} className="text-oldGold" />
+                            <div className="w-full h-full flex items-center justify-center bg-gray-100 group-hover:bg-gray-200 transition-colors">
+                                <Camera size={28} className="text-gray-400" />
                             </div>
                         )}
                     </div>
@@ -432,7 +429,7 @@ export const CloudLibraryScreen: React.FC = () => {
                                 {t.cloud.creating}
                             </>
                         ) : (
-                            t.cloud.save
+                            t.cloud.addComposer
                         )}
                     </button>
                 </div>

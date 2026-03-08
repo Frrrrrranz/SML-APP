@@ -94,31 +94,25 @@ const AppContent: React.FC = () => {
     setUpdateStatus(success ? 'success' : 'error');
   };
 
-  const loadComposers = async () => {
-    setIsLoading(true);
+  const loadComposers = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const data = await storage.dataApi.getComposers();
       setComposers(data);
     } catch (error) {
       console.error('Failed to load composers:', error);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   const handleAddComposer = async (newComposer: Composer): Promise<Composer | null> => {
     try {
       const created = await storage.dataApi.createComposer(newComposer);
-      // NOTE: API 返回的对象可能不包含 works/recordings，需补充默认值以确保列表立即渲染
-      const composerWithDefaults = {
-        ...created,
-        works: created.works || [],
-        recordings: created.recordings || [],
-        sheetMusicCount: 0,
-        recordingCount: 0,
-      };
-      setComposers((prev) => [...prev, composerWithDefaults]);
-      return composerWithDefaults;
+      // NOTE: 创建后立即从 DB 加载完整数据（含 resolveImageUrl），
+      // 确保 composers prop 包含解析后的头像 URI，避免 framer-motion 分支切换动画问题
+      await loadComposers(true);
+      return { ...created, works: created.works || [], recordings: created.recordings || [] };
     } catch (error) {
       console.error('Failed to create composer:', error);
       return null;

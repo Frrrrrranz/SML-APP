@@ -9,6 +9,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useStorage } from '../contexts/StorageContext';
 import { Modal } from '../components/Modal';
 import { fadeInUp, staggerContainer, listItemSlide, fabAnimation, tabContent } from '../utils/animations';
+import { getComposerAvatarUrl } from '../utils/avatar';
 
 interface ComposerDetailScreenProps {
   composerId: string;
@@ -459,22 +460,16 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             onClick={() => isEditing ? setShowPortraitModal(true) : null}
           >
             <div className="relative h-44 w-44 rounded-full shadow-lg overflow-hidden border-4 border-white bg-gray-200 ring-1 ring-black/5">
-              {hasCustomAvatar ? (
-                <img
-                  src={composer.image!}
-                  alt={composer.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-oldGold/10">
-                  <span className="text-5xl font-serif text-oldGold">
-                    {composer.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              {/* NOTE: 与设置页一致，统一使用 ui-avatars.com 生成首字母头像 */}
+              <img
+                src={hasCustomAvatar ? composer.image! : getComposerAvatarUrl(composer.name)}
+                alt={composer.name}
+                className="w-full h-full object-cover"
+              />
+              {/* NOTE: 编辑模式下叠加半透明黑色遮罩，保留头像内容可见 */}
               {isEditing && (
-                <div className="absolute inset-0 bg-gray-200 flex items-center justify-center animate-in fade-in duration-200">
-                  <Camera className="text-oldGold drop-shadow-md" size={32} />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center animate-in fade-in duration-200">
+                  <Camera className="text-white drop-shadow-md" size={32} />
                 </div>
               )}
             </div>

@@ -157,9 +157,9 @@ export const pushComposerToCloud = async (
             cloudImageUrl = await uploadLocalFileToCloud(
                 localComposer.image, 'avatars', `composers/${localComposer.id}`
             );
-        } catch {
-            // 头像上传失败不阻塞
-            console.warn('Failed to upload avatar to cloud, skipping');
+        } catch (err) {
+            // NOTE: 头像上传失败不阻塞，但需要记录具体原因以便排查
+            console.error('[Push] Avatar upload failed:', err);
         }
     }
 
@@ -346,15 +346,37 @@ export const pullComposerToLocal = async (
 
 /**
  * 将本地文件上传到 Supabase Storage
- * 读取本地文件的 base64 内容，转为 Blob 后上传
+ * NOTE: localPath 可能是原始相对路径（SML/avatars/xxx.jpg）或
+ * dbGetComposer 已解析的 WebView URI（capacitor://localhost/...）
+ * 两种格式均支持
  */
 const uploadLocalFileToCloud = async (
     localPath: string,
     bucket: string,
     remotePath: string
 ): Promise<string> => {
-    // 读取本地文件的 base64 数据
-    const base64Data = await readLocalFile(localPath);
+    let base64Data: string;
+
+    // NOTE: dbGetComposer 会将本地路径解析为 WebView URI
+    // Capacitor Filesystem.readFile 不接受 capacitor:// 或 file:// URI，
+    // 需要改用 fetch() 直接拉取 WebView 可访问的资源
+    const isWebViewUri = (
+        localPath.startsWith('capacitor://') ||
+        localPath.startsWith('https://localhost') ||
+        localPath.startsWith('file://')
+    );
+
+    if (isWebViewUri) {
+        const response = await fetch(localPath);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch local file via WebView URI: ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        base64Data = await blobToBase64(blob);
+    } else {
+        // 原始相对路径（如 SML/avatars/xxx.jpg），使用 Filesystem API 读取
+        base64Data = await readLocalFile(localPath);
+    }
 
     // 从路径推断文件扩展名
     const ext = localPath.split('.').pop()?.toLowerCase() || 'bin';
@@ -367,7 +389,6 @@ const uploadLocalFileToCloud = async (
         bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // 推断 MIME 类型
     const mimeType = getMimeType(ext);
 
     const { error } = await supabase.storage
@@ -381,7 +402,6 @@ const uploadLocalFileToCloud = async (
         throw new Error(`Storage upload failed: ${error.message}`);
     }
 
-    // 获取公开 URL
     const { data: urlData } = supabase.storage
         .from(bucket)
         .getPublicUrl(fullRemotePath);

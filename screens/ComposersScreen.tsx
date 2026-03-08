@@ -8,6 +8,7 @@ import { useStorage } from '../contexts/StorageContext';
 import { staggerContainer, listItem, fabAnimation } from '../utils/animations';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getLocalFileUri } from '../services/local-file-storage';
+import { getComposerAvatarUrl } from '../utils/avatar';
 
 interface ComposersScreenProps {
   composers: Composer[];
@@ -68,16 +69,14 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
 
     setIsUploading(true);
     try {
-      // NOTE: 使用固定占位符图片，避免基于名字的头像在改名后不同步
-      const defaultImage = '/composer-placeholder.png';
-
       const newComposer = {
         name,
         period,
-        image: defaultImage,
+        image: '',
       };
 
-      // 创建作曲家并获取返回的对象（包含 ID）
+      // NOTE: onAddComposer 内部会 createComposer + loadComposers(true)
+      // 返回时父组件 composers state 已包含完整解析数据
       const created = await onAddComposer(newComposer as Composer);
 
       if (!created) {
@@ -87,18 +86,14 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
       // 如果用户选择了头像图片，上传并更新
       if (imageFile && created.id) {
         const avatarUrl = await storage.uploadAvatar(imageFile, created.id);
-        // 更新作曲家的头像 URL
         const updated = await storage.dataApi.updateComposer(created.id, { image: avatarUrl });
 
-        // NOTE: dbUpdateComposer 返回的是 SQLite 中的相对路径（如 SML/avatars/xxx.jpg），
-        // 需要转换为 WebView 可访问的 URI 才能在 <img> 中显示
         let resolvedImage = updated.image;
         if (resolvedImage && !resolvedImage.startsWith('http')) {
           const fileUri = await getLocalFileUri(resolvedImage);
           if (fileUri) resolvedImage = Capacitor.convertFileSrc(fileUri);
         }
 
-        // 通知父组件更新状态
         if (onUpdateComposer) {
           onUpdateComposer({ ...created, image: resolvedImage });
         }
@@ -173,22 +168,18 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
                   whileTap={{ scale: 0.98 }}
                   className="group flex items-center gap-5 p-4 cursor-pointer rounded-xl"
                 >
-                  {/* Image - 无头像时显示首字母，不使用占位图 */}
+                  {/* Image - 使用与设置页一致的 ui-avatars.com 方案，叠加暗金色滤镜统一风格 */}
                   <div className="shrink-0 relative">
                     <div className="bg-[#F0F0EB] aspect-square rounded-full size-16 overflow-hidden shadow-inner ring-1 ring-black/5">
-                      {composer.image && !composer.image.includes('ui-avatars.com') && composer.image !== '/composer-placeholder.png' ? (
-                        <img
-                          src={composer.image}
-                          alt={composer.name}
-                          className="h-full w-full object-cover grayscale sepia-[.3] contrast-[1.1] opacity-90 mix-blend-multiply"
-                        />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-oldGold/10">
-                          <span className="text-2xl font-serif font-bold text-oldGold">
-                            {composer.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
+                      <img
+                        src={
+                          composer.image && !composer.image.startsWith('/composer-placeholder')
+                            ? composer.image
+                            : getComposerAvatarUrl(composer.name)
+                        }
+                        alt={composer.name}
+                        className="h-full w-full object-cover grayscale sepia-[.3] contrast-[1.1] opacity-90 mix-blend-multiply"
+                      />
                     </div>
                   </div>
 
