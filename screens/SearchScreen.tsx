@@ -6,6 +6,7 @@ import { PERIODS, INSTRUMENTS, GENRES } from '../constants';
 import { Composer } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { staggerContainer, listItem, searchResultsContainer, searchResultItem, quickTransition } from '../utils/animations';
+import { getComposerAvatarUrl } from '../utils/avatar';
 
 type Category = 'Periods' | 'Instruments' | 'Genres' | 'Composers';
 
@@ -101,7 +102,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ composers }) => {
 
   const renderCategoryHeader = (title: string) => (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-gray-100">
-      <div className="px-4 pt-12 pb-4 flex items-center">
+      <div className="px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 flex items-center">
         <button
           onClick={handleBack}
           className="flex items-center text-oldGold font-semibold -ml-2 pr-4 active:opacity-60 transition-opacity"
@@ -148,7 +149,15 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ composers }) => {
               className="flex items-center gap-4 py-3 pr-4 cursor-pointer hover:bg-gray-50 transition-colors active:bg-gray-100"
             >
               <div className="h-12 w-12 rounded-full overflow-hidden bg-gray-200 shadow-sm shrink-0">
-                <img src={composer.image} className="w-full h-full object-cover grayscale sepia-[.3] contrast-[1.1] opacity-90 mix-blend-multiply" alt={composer.name} />
+                <img
+                  src={
+                    composer.image && !composer.image.startsWith('/composer-placeholder')
+                      ? composer.image
+                      : getComposerAvatarUrl(composer.name)
+                  }
+                  className="w-full h-full object-cover grayscale sepia-[.3] contrast-[1.1] opacity-90 mix-blend-multiply"
+                  alt={composer.name}
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-base font-bold text-textMain font-serif truncate">{composer.name}</p>
@@ -248,7 +257,15 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ composers }) => {
                     onClick={() => handleComposerClick(c.id)}
                     className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
-                    <img src={c.image} className="h-10 w-10 rounded-full object-cover grayscale sepia-[.3] contrast-[1.1] opacity-90 mix-blend-multiply" alt={c.name} />
+                    <img
+                      src={
+                        c.image && !c.image.startsWith('/composer-placeholder')
+                          ? c.image
+                          : getComposerAvatarUrl(c.name)
+                      }
+                      className="h-10 w-10 rounded-full object-cover grayscale sepia-[.3] contrast-[1.1] opacity-90 mix-blend-multiply"
+                      alt={c.name}
+                    />
                     <div className="flex-1">
                       <p className="text-sm font-bold text-textMain font-serif">{c.name}</p>
                       <p className="text-xs text-textSub">

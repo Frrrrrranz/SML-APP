@@ -109,9 +109,9 @@ const AppContent: React.FC = () => {
   const handleAddComposer = async (newComposer: Composer): Promise<Composer | null> => {
     try {
       const created = await storage.dataApi.createComposer(newComposer);
-      // NOTE: 创建后立即从 DB 加载完整数据（含 resolveImageUrl），
-      // 确保 composers prop 包含解析后的头像 URI，避免 framer-motion 分支切换动画问题
-      await loadComposers(true);
+      // NOTE: 使用非 silent 模式强制触发骨架屏→列表的完整渲染流程
+      // 避免 framer-motion 空→非空分支切换时动画卡住
+      await loadComposers();
       return { ...created, works: created.works || [], recordings: created.recordings || [] };
     } catch (error) {
       console.error('Failed to create composer:', error);
