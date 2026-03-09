@@ -86,55 +86,12 @@ const AppContent: React.FC = () => {
     doCheck();
   }, []);
 
-  // NOTE: 监听 Electron 的自动更新事件
-  useEffect(() => {
-    if (!isElectron()) return;
-
-    window.electronAPI?.onUpdateAvailable((data) => {
-      setUpdateVersion(data.version);
-      setUpdateStatus('prompt');
-      setUpdateProgress(0);
-      setShowUpdateModal(true);
-    });
-
-    window.electronAPI?.onUpdateProgress((data) => {
-      setUpdateProgress(data.percent);
-      setUpdateStatus('downloading');
-    });
-
-    window.electronAPI?.onUpdateDownloaded(() => {
-      setUpdateStatus('success');
-      setUpdateProgress(100);
-    });
-
-    window.electronAPI?.onUpdateError((data) => {
-      console.error('[Electron OTA] Update error:', data.message);
-      setUpdateStatus('error');
-    });
-  }, []);
-
   // 处理用户确认更新（仅下载，不自动重载）
   const handleConfirmUpdate = async () => {
     setUpdateStatus('downloading');
     setUpdateProgress(0);
-
-    if (isElectron()) {
-      await window.electronAPI?.downloadUpdate();
-      // Electron 环境下，等待 onUpdateDownloaded 回调再设置状态为 success
-      return;
-    }
-
     const success = await downloadUpdate(updateDownloadUrl, setUpdateProgress);
     setUpdateStatus(success ? 'success' : 'error');
-  };
-
-  // 处理更新完成后重启
-  const handleReload = async () => {
-    if (isElectron()) {
-      await window.electronAPI?.installUpdate();
-      return;
-    }
-    await applyUpdateAndReload();
   };
 
   const loadComposers = async (silent = false) => {
@@ -273,7 +230,7 @@ const AppContent: React.FC = () => {
           progress={updateProgress}
           onConfirm={handleConfirmUpdate}
           onDismiss={() => setShowUpdateModal(false)}
-          onReload={handleReload}
+          onReload={applyUpdateAndReload}
         />
 
       </div>

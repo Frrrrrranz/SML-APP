@@ -9,7 +9,6 @@ import {
     getSession,
     onAuthStateChange,
 } from '../supabase';
-import { isElectron } from '../services/platform';
 
 // 认证上下文类型定义
 interface AuthContextType {
@@ -36,14 +35,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     useEffect(() => {
         const initAuth = async () => {
             try {
-                // NOTE: Electron 桌面端使用纯本地存储，不需要云端认证
-                // 直接设置空 session 跳过 AuthGuard 的登录拦截
-                if (isElectron()) {
-                    setSession({} as Session);
-                    setLoading(false);
-                    return;
-                }
-
                 const currentSession = await getSession();
                 setSession(currentSession);
                 setUser(currentSession?.user ?? null);
@@ -60,9 +51,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
 
         initAuth();
-
-        // NOTE: Electron 不需要监听认证状态变化
-        if (isElectron()) return;
 
         // 监听认证状态变化
         const { data: { subscription } } = onAuthStateChange(async (event, newSession) => {
