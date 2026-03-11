@@ -1,5 +1,4 @@
-// NOTE: 不在顶层 import @capgo/capacitor-updater，因为 Electron 环境下原生插件不可用
-// 改为在函数内部动态 import，仅 Android 端实际调用时才加载
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { WEB_VERSION, GITHUB_REPO } from '../constants/app-version';
 
 /**
@@ -8,7 +7,18 @@ import { WEB_VERSION, GITHUB_REPO } from '../constants/app-version';
  * 通过 GitHub Releases API 检测更新并下载 web-bundle.zip。
  * ⚠️ 打包 zip 必须使用 capgo CLI（npx @capgo/cli bundle zip dist），
  * PowerShell Compress-Archive 生成的格式不兼容。
+ *
+ * NOTE: 此模块中所有涉及 CapacitorUpdater 的调用（notifyAppReady、download、set 等）
+ * 必须保持静态 import，不得改为动态 import。
+ * 原因：@capgo/capacitor-updater 原生层在 App 启动后启动 10 秒倒计时，
+ * 必须在超时前调用 notifyAppReady()。动态 import 引入的异步延迟会导致超时触发回滚，
+ * 表现为 App 启动后白屏。
+ * 该模块仅在安卓端被实际调用（App.tsx 中通过 isAndroid() 守卫）。
+ * Electron 不调用任何 OTA 函数，因此静态 import 不会影响桌面端。
  */
+
+// BundleInfo 类型：download() 的返回值结构
+type BundleInfo = Awaited<ReturnType<typeof CapacitorUpdater.download>>;
 
 interface UpdateInfo {
     version: string;
@@ -90,8 +100,7 @@ export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
 };
 
 // NOTE: 缓存下载好的 bundle 信息，供用户确认重启时使用
-// 使用 Record 类型代替 BundleInfo，因为该类型需要从动态 import 中获取
-let pendingBundle: Record<string, unknown> | null = null;
+let pendingBundle: BundleInfo | null = null;
 
 /**
  * 下载 Web 热更新 bundle（仅下载，不立即应用）
@@ -103,7 +112,6 @@ export const downloadUpdate = async (
     onProgress?: (progress: number) => void
 ): Promise<boolean> => {
     try {
-        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         onProgress?.(10);
 
         const bundle = await CapacitorUpdater.download({
@@ -115,7 +123,7 @@ export const downloadUpdate = async (
         onProgress?.(100);
 
         // 缓存 bundle，等用户确认后再应用
-        pendingBundle = bundle as unknown as Record<string, unknown>;
+        pendingBundle = bundle;
         return true;
     } catch (error) {
         console.error('[OTA] Download failed:', error);
@@ -136,11 +144,10 @@ export const applyUpdateAndReload = async (): Promise<void> => {
     }
 
     try {
-        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         // NOTE: set() 必须传入完整 BundleInfo 对象（download 返回值）
-        await CapacitorUpdater.set(pendingBundle as unknown as Parameters<typeof CapacitorUpdater.set>[0]);
+        await CapacitorUpdater.set(pendingBundle);
         // set() 会异步重载 WebView，后续代码作为降级保险
-        await CapacitorUpdater.next({ id: pendingBundle.id as string });
+        await CapacitorUpdater.next({ id: pendingBundle.id });
         const { App: CapacitorApp } = await import('@capacitor/app');
         await CapacitorApp.exitApp();
     } catch (error) {
@@ -151,15 +158,14 @@ export const applyUpdateAndReload = async (): Promise<void> => {
 /**
  * 应用启动时立即通知插件当前版本运行正常
  * NOTE: 必须在应用启动后尽快调用（10 秒内），
- * 否则插件会认为更新导致应用崩溃并自动回滚到上一个版本
+ * 否则插件会认为更新导致应用崩溃并自动回滚到上一个版本，表现为白屏。
+ * 在 App.tsx 中通过 isAndroid() 守卫确保仅安卓端调用此函数。
  */
 export const notifyAppReady = async (): Promise<void> => {
     try {
-        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         await CapacitorUpdater.notifyAppReady();
     } catch (error) {
         // 首次安装或无 bundle 更新时可能报错，忽略即可
         console.warn('[OTA] notifyAppReady skipped:', error);
     }
 };
-
