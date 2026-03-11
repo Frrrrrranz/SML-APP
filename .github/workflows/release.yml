@@ -31,8 +31,12 @@ jobs:
       - name: Rebuild native modules for Electron
         run: npx @electron/rebuild -m . -w better-sqlite3
 
+      # NOTE: 注入 Supabase 环境变量，否则 Vite 打包时 createClient 会收到空字符串并抛出异常，导致白屏
       - name: Build Web
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Compile Electron TypeScript
         run: npx tsc -p electron/tsconfig.json
@@ -77,8 +81,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # NOTE: 注入 Supabase 环境变量，否则 Vite 打包时 createClient 会收到空字符串并抛出异常，导致白屏
       - name: Build Web
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Sync Capacitor to Android
         run: npx cap sync android
