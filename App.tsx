@@ -303,8 +303,11 @@ import { StorageProvider } from './contexts/StorageContext';
 const App: React.FC = () => {
   // NOTE: 必须在应用启动后立即通知 capacitor-updater 当前版本正常运行
   // 如果超时未调用（默认 10 秒），插件会自动回滚到上一个版本，导致白屏或卡住
+  // 仅 Android 需要，Electron 使用 electron-updater 另行处理
   useEffect(() => {
-    notifyAppReady();
+    if (isAndroid()) {
+      notifyAppReady();
+    }
   }, []);
 
   return (

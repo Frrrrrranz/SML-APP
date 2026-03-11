@@ -1,4 +1,5 @@
-import { CapacitorUpdater, BundleInfo } from '@capgo/capacitor-updater';
+// NOTE: 不在顶层 import @capgo/capacitor-updater，因为 Electron 环境下原生插件不可用
+// 改为在函数内部动态 import，仅 Android 端实际调用时才加载
 import { WEB_VERSION, GITHUB_REPO } from '../constants/app-version';
 
 /**
@@ -89,7 +90,8 @@ export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
 };
 
 // NOTE: 缓存下载好的 bundle 信息，供用户确认重启时使用
-let pendingBundle: BundleInfo | null = null;
+// 使用 Record 类型代替 BundleInfo，因为该类型需要从动态 import 中获取
+let pendingBundle: Record<string, unknown> | null = null;
 
 /**
  * 下载 Web 热更新 bundle（仅下载，不立即应用）
@@ -101,6 +103,7 @@ export const downloadUpdate = async (
     onProgress?: (progress: number) => void
 ): Promise<boolean> => {
     try {
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         onProgress?.(10);
 
         const bundle = await CapacitorUpdater.download({
@@ -112,7 +115,7 @@ export const downloadUpdate = async (
         onProgress?.(100);
 
         // 缓存 bundle，等用户确认后再应用
-        pendingBundle = bundle;
+        pendingBundle = bundle as unknown as Record<string, unknown>;
         return true;
     } catch (error) {
         console.error('[OTA] Download failed:', error);
@@ -133,10 +136,11 @@ export const applyUpdateAndReload = async (): Promise<void> => {
     }
 
     try {
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         // NOTE: set() 必须传入完整 BundleInfo 对象（download 返回值）
-        await CapacitorUpdater.set(pendingBundle);
+        await CapacitorUpdater.set(pendingBundle as unknown as Parameters<typeof CapacitorUpdater.set>[0]);
         // set() 会异步重载 WebView，后续代码作为降级保险
-        await CapacitorUpdater.next({ id: pendingBundle.id });
+        await CapacitorUpdater.next({ id: pendingBundle.id as string });
         const { App: CapacitorApp } = await import('@capacitor/app');
         await CapacitorApp.exitApp();
     } catch (error) {
@@ -151,9 +155,11 @@ export const applyUpdateAndReload = async (): Promise<void> => {
  */
 export const notifyAppReady = async (): Promise<void> => {
     try {
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         await CapacitorUpdater.notifyAppReady();
     } catch (error) {
         // 首次安装或无 bundle 更新时可能报错，忽略即可
         console.warn('[OTA] notifyAppReady skipped:', error);
     }
 };
+

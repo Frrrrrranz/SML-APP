@@ -9,8 +9,15 @@ import { isElectron } from './platform';
  * Electron 环境下通过 IPC 调用主进程的 better-sqlite3，Android 使用 Capacitor SQLite
  */
 
-// NOTE: Electron 环境下这些对象不会被使用，但需要声明以避免编译错误
-const sqliteConnection = new SQLiteConnection(CapacitorSQLite);
+// NOTE: 延迟初始化 — Electron 环境下 Capacitor 原生插件不可用，
+// 模块顶层 new SQLiteConnection() 会直接崩溃，因此改为按需创建
+let sqliteConnection: SQLiteConnection | null = null;
+const getSqliteConnection = (): SQLiteConnection => {
+    if (!sqliteConnection) {
+        sqliteConnection = new SQLiteConnection(CapacitorSQLite);
+    }
+    return sqliteConnection;
+};
 let db: SQLiteDBConnection | null = null;
 
 // Electron 数据库初始化标记
@@ -75,16 +82,17 @@ export const initDatabase = async (): Promise<void> => {
         return;
     }
 
-    // Android 分支：原有 Capacitor SQLite 逻辑，一字不改
+    // Android 分支：原有 Capacitor SQLite 逻辑
     try {
+        const conn = getSqliteConnection();
         // 检查是否需要升级（首次运行或版本变更时自动创建表）
-        const isConsistent = (await sqliteConnection.checkConnectionsConsistency()).result;
-        const isConnection = (await sqliteConnection.isConnection(DB_NAME, false)).result;
+        const isConsistent = (await conn.checkConnectionsConsistency()).result;
+        const isConnection = (await conn.isConnection(DB_NAME, false)).result;
 
         if (isConsistent && isConnection) {
-            db = await sqliteConnection.retrieveConnection(DB_NAME, false);
+            db = await conn.retrieveConnection(DB_NAME, false);
         } else {
-            db = await sqliteConnection.createConnection(DB_NAME, false, 'no-encryption', 1, false);
+            db = await conn.createConnection(DB_NAME, false, 'no-encryption', 1, false);
         }
 
         await db.open();
