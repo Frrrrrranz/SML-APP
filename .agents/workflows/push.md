@@ -1,35 +1,46 @@
 ---
-description: 暂存、提交并推送代码到远程仓库
+description: 精确暂存、提交并推送本次确认过的代码到远程仓库
 ---
 
-# /push — Git 提交并推送
+# /push - Git 提交并推送
 
-将当前修改提交到 Git 并推送到远程仓库。
+将当前已经确认的改动提交到 Git，并推送到远程仓库。
 
 ## 步骤
 
-1. 先用 `git status` 或 `git diff --stat` 查看本次变更内容，据此生成 commit message，发送给用户确认
+1. 先查看本次变更范围
 
-2. 用户确认 commit message 后，执行暂存
-
-// turbo
-```bash
-git add .
+```powershell
+git status --short
+git diff --stat
 ```
 
-3. 提交（使用确认后的 commit message）
+2. 根据变更内容生成 commit message，并先发送给用户确认
 
-```bash
+3. 只暂存本次确认要提交的文件
+
+```powershell
+git add <file1> <file2> ...
+```
+
+4. 提交
+
+```powershell
 git commit -m "<确认后的 commit message>"
 ```
 
-4. 推送到远程
+5. 推送到远程
 
-// turbo
-```bash
+```powershell
 git push
 ```
 
 ## 注意事项
-- commit message 必须先发给用户确认，**不可自动执行**
-- 推送前确保已完成 `/run`（build + sync）
+
+- commit message 必须先让用户确认，不可自动决定后直接提交
+- 不要默认使用 `git add .`
+- 如果工作区存在 `.kiro/`、临时文件、工具缓存或其他未确认文件，必须避免一并提交
+- 代码、配置、构建链路改动时，推送前应先完成必要验证
+- 纯文档改动可不执行 `/run`
+- 如果推送失败，先阅读远端报错，再选择最小修复方案，不要直接强推
+- 当前 shell 是 PowerShell，命令中不要使用 `&&`，应分行执行或拆成多个独立命令
