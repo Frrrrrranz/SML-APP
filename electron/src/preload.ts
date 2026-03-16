@@ -87,4 +87,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     onUpdateError: (callback: (data: { message: string }) => void) =>
         ipcRenderer.on('update:error', (_event, data) => callback(data)),
+
+    // =============================================
+    // 桌面端 Web 资源热更新
+    // =============================================
+    desktopWebCheckForUpdate: (currentVersion: string): Promise<unknown> =>
+        ipcRenderer.invoke('desktop-web-update:check', currentVersion),
+
+    desktopWebDownloadUpdate: (downloadUrl: string, version: string): Promise<boolean> =>
+        ipcRenderer.invoke('desktop-web-update:download', { downloadUrl, version }),
+
+    desktopWebApplyUpdate: (): Promise<void> =>
+        ipcRenderer.invoke('desktop-web-update:apply'),
+
+    onDesktopWebUpdateProgress: (callback: (data: { percent: number }) => void): (() => void) => {
+        const listener = (_event: unknown, data: { percent: number }) => callback(data);
+        ipcRenderer.on('desktop-web-update:progress', listener);
+        return () => ipcRenderer.removeListener('desktop-web-update:progress', listener);
+    },
 });

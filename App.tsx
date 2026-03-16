@@ -22,6 +22,7 @@ import { pageTransition } from './utils/animations';
 import { SplashScreen } from './screens/SplashScreen';
 import { checkForUpdate, downloadUpdate, applyUpdateAndReload, notifyAppReady } from './services/ota-update';
 import { isAndroid, isElectron } from './services/platform';
+import { WEB_VERSION } from './constants/app-version';
 
 
 
@@ -86,12 +87,52 @@ const AppContent: React.FC = () => {
     doCheck();
   }, []);
 
+  useEffect(() => {
+    if (!isElectron() || !window.electronAPI?.onDesktopWebUpdateProgress) return;
+    const off = window.electronAPI.onDesktopWebUpdateProgress(({ percent }) => {
+      setUpdateProgress(percent);
+    });
+    return () => off();
+  }, []);
+
+  useEffect(() => {
+    if (!isElectron() || !window.electronAPI?.desktopWebCheckForUpdate) return;
+    const doDesktopCheck = async () => {
+      try {
+        const update = await window.electronAPI!.desktopWebCheckForUpdate(WEB_VERSION);
+        if (update && update.isWebUpdate) {
+          setUpdateVersion(update.version);
+          setUpdateDownloadUrl(update.downloadUrl);
+          setUpdateStatus('prompt');
+          setUpdateProgress(0);
+          setShowUpdateModal(true);
+        }
+      } catch (error) {
+        console.error('Desktop web update check failed:', error);
+      }
+    };
+    doDesktopCheck();
+  }, []);
+
   // 处理用户确认更新（仅下载，不自动重载）
   const handleConfirmUpdate = async () => {
     setUpdateStatus('downloading');
     setUpdateProgress(0);
-    const success = await downloadUpdate(updateDownloadUrl, setUpdateProgress);
+    let success = false;
+    if (isElectron() && window.electronAPI?.desktopWebDownloadUpdate) {
+      success = await window.electronAPI.desktopWebDownloadUpdate(updateDownloadUrl, updateVersion);
+    } else {
+      success = await downloadUpdate(updateDownloadUrl, setUpdateProgress);
+    }
     setUpdateStatus(success ? 'success' : 'error');
+  };
+
+  const handleApplyUpdate = async () => {
+    if (isElectron() && window.electronAPI?.desktopWebApplyUpdate) {
+      await window.electronAPI.desktopWebApplyUpdate();
+      return;
+    }
+    await applyUpdateAndReload();
   };
 
   const loadComposers = async (silent = false) => {
@@ -230,7 +271,7 @@ const AppContent: React.FC = () => {
           progress={updateProgress}
           onConfirm={handleConfirmUpdate}
           onDismiss={() => setShowUpdateModal(false)}
-          onReload={applyUpdateAndReload}
+          onReload={handleApplyUpdate}
         />
 
       </div>

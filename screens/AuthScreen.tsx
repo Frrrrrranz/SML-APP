@@ -180,28 +180,43 @@ export const AuthScreen: React.FC = () => {
                         </AnimatePresence>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="flex flex-col">
-                        {/* Nickname (Register Only) - 带过渡动画 */}
+                    <motion.form
+                        onSubmit={handleSubmit}
+                        className="flex flex-col"
+                        layout
+                        transition={{ layout: { duration: 0.24, ease: 'easeInOut' } }}
+                    >
+                        {/* Nickname (Register Only) - 带高度与透明度过渡，避免切换时跳动 */}
                         <AnimatePresence initial={false}>
                             {mode === 'register' && (
                                 <motion.div
-                                    className="relative mb-6"
-                                    initial={{ opacity: 0, y: -6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -6 }}
-                                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                                    key="nickname-field"
+                                    className="overflow-hidden"
+                                    layout
+                                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                    animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
+                                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                                 >
-                                    <div className="absolute left-0 top-3 text-gray-400">
-                                        <User size={20} />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={nickname}
-                                        onChange={(e) => setNickname(e.target.value)}
-                                        placeholder={t.auth.nickname}
-                                        className={`w-full pl-8 pr-4 py-3 border-b-2 border-gray-200 bg-transparent text-textMain placeholder-gray-400 focus:border-oldGold focus:outline-none transition-colors ${desktopMode ? 'text-base' : 'text-lg'}`}
-                                        autoComplete="name"
-                                    />
+                                    <motion.div
+                                        className="relative"
+                                        initial={{ y: -6 }}
+                                        animate={{ y: 0 }}
+                                        exit={{ y: -4 }}
+                                        transition={{ duration: 0.18, ease: 'easeOut' }}
+                                    >
+                                        <div className="absolute left-0 top-3 text-gray-400">
+                                            <User size={20} />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={nickname}
+                                            onChange={(e) => setNickname(e.target.value)}
+                                            placeholder={t.auth.nickname}
+                                            className={`w-full pl-8 pr-4 py-3 border-b-2 border-gray-200 bg-transparent text-textMain placeholder-gray-400 focus:border-oldGold focus:outline-none transition-colors ${desktopMode ? 'text-base' : 'text-lg'}`}
+                                            autoComplete="name"
+                                        />
+                                    </motion.div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -328,7 +343,7 @@ export const AuthScreen: React.FC = () => {
                                 </>
                             )}
                         </motion.button>
-                    </form>
+                    </motion.form>
 
                     <div className="mt-8 text-center text-sm">
                         <AnimatePresence mode="wait" initial={false}>

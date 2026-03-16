@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import Database from 'better-sqlite3';
 import { initAutoUpdater } from './auto-updater';
+import { getPreferredRendererEntry, initDesktopWebBundleUpdater } from './web-bundle-updater';
 
 /**
  * SML Desktop — Electron 主进程
@@ -253,9 +254,9 @@ const createWindow = (): void => {
         show: false,
     });
 
-    // 加载 Vite 构建产物
-    const indexPath = path.join(__dirname, '..', '..', 'dist', 'index.html');
-    mainWindow.loadFile(indexPath);
+    // 加载渲染资源：优先已安装的桌面 Web bundle，回退到内置 dist
+    const entryPath = getPreferredRendererEntry();
+    mainWindow.loadFile(entryPath);
 
     // 窗口准备好后再显示
     mainWindow.once('ready-to-show', () => {
@@ -391,7 +392,10 @@ app.whenReady().then(async () => {
     createMenu();
     createWindow();
 
-    // NOTE: 窗口创建后初始化自动更新（仅在打包后生效，开发模式下跳过）
+    // NOTE: 桌面端 Web 热更新在开发/生产都可初始化；electron-updater 仅生产启用
+    if (mainWindow) {
+        initDesktopWebBundleUpdater(mainWindow);
+    }
     if (mainWindow && !process.argv.includes('--dev')) {
         initAutoUpdater(mainWindow);
     }
