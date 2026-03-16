@@ -22,25 +22,25 @@ npm run build
 
 ```bash
 npx -y @capgo/cli bundle zip dist
-Rename-Item dist_0.0.0.zip web-bundle.zip
+Rename-Item dist_0.0.0.zip web-bundle-android.zip
 ```
 
 4. 使用 GitHub CLI 创建 Release 并上传 zip
 
 ```bash
-gh release create web-v<新版本号> web-bundle.zip --title "Web Update v<新版本号>" --notes "<更新说明>" --prerelease --repo Frrrrrranz/SML-APP
+gh release create web-android-v<新版本号> web-bundle-android.zip --title "Android Web Update v<新版本号>" --notes "<更新说明>" --prerelease --repo Frrrrrranz/SML-APP
 ```
 
 5. 清理临时文件
 
 ```bash
-Remove-Item web-bundle.zip
+Remove-Item web-bundle-android.zip
 ```
 
 6. 执行 `/push` workflow 将版本号变更提交到 Git
 
 ## 注意事项
 - 发布前确保 `gh auth login` 已完成（首次使用需要登录）
-- tag 格式必须为 `web-v<版本号>`，APP 通过此前缀识别 OTA 更新
+- tag 格式必须为 `web-android-v<版本号>`，Android APP 通过此前缀识别 OTA 更新
 - **打包必须使用 `npx @capgo/cli bundle zip dist`**，不能用 PowerShell 的 `Compress-Archive`
 - 如果是大版本更新（涉及原生插件变更），应该走 `/build-android` 流程发布新 APK

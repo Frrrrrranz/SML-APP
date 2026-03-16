@@ -17,10 +17,10 @@ description: 桌面端 Web 资源 OTA 发布流程（适用于 v1.0.7+ 客户端
 2. 执行 `npm run build` 产出 `dist/`。
 3. 使用 Capgo CLI 打包 zip（不要使用 `Compress-Archive`）：
    - `npx -y @capgo/cli bundle zip dist`
-   - `Rename-Item dist_0.0.0.zip web-bundle.zip`
+   - `Rename-Item dist_0.0.0.zip web-bundle-desktop.zip`
 4. 创建 GitHub Release：
-   - tag 规范：`web-v<WEB_VERSION>`（例如 `web-v1.0.7.1`）
-   - 附件必须包含 `web-bundle.zip`
+   - tag 规范：`web-desktop-v<WEB_VERSION>`（例如 `web-desktop-v1.0.7.1`）
+   - 附件必须包含 `web-bundle-desktop.zip`
 5. 如需保留源码记录，再提交 `WEB_VERSION` 变更并推送到主分支。
 
 ## 何时不要用本流程

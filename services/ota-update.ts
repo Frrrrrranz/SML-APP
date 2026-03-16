@@ -4,7 +4,7 @@ import { WEB_VERSION, GITHUB_REPO } from '../constants/app-version';
 /**
  * OTA 热更新服务
  * NOTE: 利用 @capgo/capacitor-updater 在原生层实现 Web 资源热替换，
- * 通过 GitHub Releases API 检测更新并下载 web-bundle.zip。
+ * 通过 GitHub Releases API 检测更新并下载 Android 通道资源（web-bundle-android.zip）。
  * ⚠️ 打包 zip 必须使用 capgo CLI（npx @capgo/cli bundle zip dist），
  * PowerShell Compress-Archive 生成的格式不兼容。
  *
@@ -27,6 +27,9 @@ interface UpdateInfo {
     isWebUpdate: boolean;
 }
 
+const ANDROID_WEB_RELEASE_TAG_PREFIX = 'web-android-v';
+const ANDROID_WEB_BUNDLE_ASSET_NAME = 'web-bundle-android.zip';
+
 /**
  * 比较两个版本号（支持四位版本号如 1.0.2.1）
  * @returns 正数表示 remote 更新，0 相等，负数表示 current 更新
@@ -47,7 +50,7 @@ const compareVersions = (current: string, remote: string): number => {
 
 /**
  * 从 GitHub Releases 检查是否有可用更新
- * NOTE: 查找 tag 名称以 "web-v" 开头的 release
+ * NOTE: 查找 tag 名称以 "web-android-v" 开头的 release
  */
 export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
     try {
@@ -69,14 +72,14 @@ export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
         for (const release of releases) {
             const tag: string = release.tag_name || '';
 
-            if (tag.startsWith('web-v')) {
-                const remoteVersion = tag.replace('web-v', '');
+            if (tag.startsWith(ANDROID_WEB_RELEASE_TAG_PREFIX)) {
+                const remoteVersion = tag.replace(ANDROID_WEB_RELEASE_TAG_PREFIX, '');
                 const cmp = compareVersions(WEB_VERSION, remoteVersion);
 
                 if (cmp > 0) {
                     const bundleAsset = release.assets?.find(
                         (a: Record<string, string>) =>
-                            a.name === 'web-bundle.zip'
+                            a.name === ANDROID_WEB_BUNDLE_ASSET_NAME
                     );
 
                     if (bundleAsset) {

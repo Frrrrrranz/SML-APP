@@ -23,8 +23,9 @@ type CheckUpdateResult = {
 } | null;
 
 const GITHUB_REPO = 'Frrrrrranz/SML-APP';
-const RELEASE_TAG_PREFIX = 'web-v';
-const BUNDLE_ASSET_NAME = 'web-bundle.zip';
+// Desktop OTA channel: tag=web-desktop-v<version>, asset=web-bundle-desktop.zip
+const RELEASE_TAG_PREFIX = 'web-desktop-v';
+const BUNDLE_ASSET_NAME = 'web-bundle-desktop.zip';
 
 const DESKTOP_WEB_ROOT = path.join(app.getPath('userData'), 'desktop-web');
 const ACTIVE_DIR = path.join(DESKTOP_WEB_ROOT, 'active');
