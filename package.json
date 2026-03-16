@@ -1,12 +1,12 @@
 {
   "name": "opus---sheet-music-manager",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.0.6",
   "type": "module",
   "main": "electron/dist/main.js",
   "scripts": {
     "dev": "vite",
-    "start": "concurrently --names \"前端,后端\" --prefix-colors \"cyan,yellow\" \"npm run dev\" \"cd backend && python -m uvicorn main:app --reload --port 8000\"",
+    "start": "concurrently --names \"鍓嶇,鍚庣\" --prefix-colors \"cyan,yellow\" \"npm run dev\" \"cd backend && python -m uvicorn main:app --reload --port 8000\"",
     "build": "vite build",
     "preview": "vite preview",
     "electron:compile": "tsc -p electron/tsconfig.json",
@@ -50,3 +50,4 @@
     "vite": "^6.2.0"
   }
 }
+

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, Menu, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import Database from 'better-sqlite3';
@@ -13,12 +13,89 @@ import { initAutoUpdater } from './auto-updater';
 // 常量与全局变量
 // =============================================
 
-// NOTE: 应用数据存储在 %APPDATA%/SML/（Windows）
-const APP_DATA_DIR = path.join(app.getPath('userData'), 'SML');
-const DB_PATH = path.join(APP_DATA_DIR, 'sml_local.db');
+// NOTE: 数据目录配置文件仅保存路径本身，体积极小
+const STORAGE_CONFIG_PATH = path.join(app.getPath('userData'), 'storage-config.json');
+
+// NOTE: 真正业务数据目录（数据库 + 乐谱 + 录音 + 头像）
+let appDataDir = path.join(app.getPath('userData'), 'SML');
 
 let mainWindow: BrowserWindow | null = null;
 let db: Database.Database | null = null;
+
+const getDbPath = (): string => path.join(appDataDir, 'sml_local.db');
+
+const getSystemDrive = (): string =>
+    (process.env.SystemDrive || 'C:').toUpperCase();
+
+const isOnSystemDrive = (targetPath: string): boolean => {
+    const normalized = path.resolve(targetPath);
+    const rootDrive = path.parse(normalized).root.replace(/\\+$/, '').toUpperCase();
+    return rootDrive === getSystemDrive();
+};
+
+const readStorageConfig = (): string | null => {
+    try {
+        if (!fs.existsSync(STORAGE_CONFIG_PATH)) return null;
+        const raw = fs.readFileSync(STORAGE_CONFIG_PATH, 'utf-8');
+        const parsed = JSON.parse(raw) as { dataDir?: string };
+        return parsed.dataDir || null;
+    } catch (error) {
+        console.warn('[Electron] Failed to read storage config:', error);
+        return null;
+    }
+};
+
+const writeStorageConfig = (dataDir: string): void => {
+    const payload = JSON.stringify({ dataDir }, null, 2);
+    fs.writeFileSync(STORAGE_CONFIG_PATH, payload, 'utf-8');
+};
+
+const ensureStorageDirSelected = async (): Promise<boolean> => {
+    const configured = readStorageConfig();
+    if (configured && !isOnSystemDrive(configured)) {
+        appDataDir = configured;
+        fs.mkdirSync(appDataDir, { recursive: true });
+        return true;
+    }
+
+    // 无有效配置时，首次启动强制选择数据目录（禁止 C 盘）
+    while (true) {
+        const result = await dialog.showOpenDialog({
+            title: '选择 SML 数据存储目录（请勿选择 C 盘）',
+            properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+            message: '乐谱、录音和数据库将存储在你选择的目录下',
+            buttonLabel: '选择此目录',
+        });
+
+        if (result.canceled || result.filePaths.length === 0) {
+            const confirm = await dialog.showMessageBox({
+                type: 'warning',
+                buttons: ['退出应用', '继续选择'],
+                defaultId: 1,
+                cancelId: 0,
+                title: '未选择数据目录',
+                message: '必须先选择非 C 盘的数据目录，应用才能继续使用。',
+            });
+            if (confirm.response === 0) return false;
+            continue;
+        }
+
+        const selectedRoot = result.filePaths[0];
+        if (isOnSystemDrive(selectedRoot)) {
+            await dialog.showMessageBox({
+                type: 'error',
+                title: '不支持 C 盘',
+                message: '为避免占用系统盘空间，请选择非 C 盘目录。',
+            });
+            continue;
+        }
+
+        appDataDir = path.join(selectedRoot, 'SML');
+        fs.mkdirSync(appDataDir, { recursive: true });
+        writeStorageConfig(appDataDir);
+        return true;
+    }
+};
 
 // =============================================
 // 数据库初始化
@@ -30,16 +107,16 @@ let db: Database.Database | null = null;
  */
 const initDatabase = (): void => {
     // 确保数据目录存在
-    fs.mkdirSync(APP_DATA_DIR, { recursive: true });
+    fs.mkdirSync(appDataDir, { recursive: true });
 
-    db = new Database(DB_PATH);
+    db = new Database(getDbPath());
 
     // 启用 WAL 模式提升并发性能
     db.pragma('journal_mode = WAL');
     // 启用外键约束
     db.pragma('foreign_keys = ON');
 
-    console.log('[Electron] Database initialized at:', DB_PATH);
+    console.log('[Electron] Database initialized at:', getDbPath());
 };
 
 // =============================================
@@ -74,12 +151,12 @@ const registerDbHandlers = (): void => {
 // =============================================
 
 /**
- * 将相对路径解析为 APP_DATA_DIR 下的绝对路径
+ * 将相对路径解析为当前数据目录下的绝对路径
  * NOTE: 防止路径遍历攻击，确保文件操作不会逃出应用目录
  */
 const resolveFilePath = (relativePath: string): string => {
-    const resolved = path.resolve(APP_DATA_DIR, relativePath);
-    if (!resolved.startsWith(APP_DATA_DIR)) {
+    const resolved = path.resolve(appDataDir, relativePath);
+    if (!resolved.startsWith(appDataDir)) {
         throw new Error('Path traversal detected');
     }
     return resolved;
@@ -296,7 +373,13 @@ const createMenu = (): void => {
 // 应用生命周期
 // =============================================
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+    const storageReady = await ensureStorageDirSelected();
+    if (!storageReady) {
+        app.quit();
+        return;
+    }
+
     // NOTE: 数据库初始化失败不应阻塞窗口启动，IPC handlers 会在调用时检查 db 是否可用
     try {
         initDatabase();
