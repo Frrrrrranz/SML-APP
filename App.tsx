@@ -143,7 +143,7 @@ const AppContent: React.FC = () => {
   return (
     <div className={electronMode ? 'flex bg-[#1a1a2e] min-h-screen' : 'flex justify-center bg-[#E5E5E5]'}>
       {/* Electron 侧边栏导航 */}
-      {electronMode && !location.pathname.includes('/composer/') && (
+      {electronMode && (
         <SideNav
           currentPath={location.pathname}
           onNavigate={(path) => navigate(path)}
@@ -153,7 +153,7 @@ const AppContent: React.FC = () => {
       {/* 主内容区域 */}
       <div className={`
         ${electronMode
-          ? `flex-1 bg-background min-h-screen ${!location.pathname.includes('/composer/') ? 'ml-[220px]' : ''}`
+          ? 'flex-1 bg-background min-h-screen ml-[220px]'
           : 'w-full max-w-[480px] bg-background min-h-screen shadow-2xl relative overflow-hidden'
         }
       `}>

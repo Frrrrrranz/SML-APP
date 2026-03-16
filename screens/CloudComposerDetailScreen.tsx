@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { fadeInUp, staggerContainer, listItemSlide, fabAnimation, tabContent } from '../utils/animations';
 import { getComposerAvatarUrl } from '../utils/avatar';
+import { isElectron } from '../services/platform';
 import {
     getCloudComposer,
     cloudCreateWork,
@@ -44,6 +45,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     const { t } = useLanguage();
     const { profile } = useAuth();
     const isAdmin = profile?.role === 'admin';
+    const desktopMode = isElectron();
 
     // 作曲家数据
     const [composer, setComposer] = useState<Composer | null>(null);
@@ -424,14 +426,14 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col relative">
+        <div className="min-h-screen bg-background flex flex-col relative overflow-x-hidden">
             {/* Top Nav */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] bg-background/60 backdrop-blur-2xl backdrop-saturate-150 transition-all duration-300">
+            <div className={`sticky top-0 z-20 flex items-center justify-between ${desktopMode ? 'px-5 pb-2.5 pt-3' : 'px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]'} bg-background/60 backdrop-blur-2xl backdrop-saturate-150 transition-all duration-300`}>
                 <button
                     onClick={onBack}
-                    className="flex size-10 items-center justify-center rounded-full text-oldGold hover:bg-black/5 transition-colors"
+                    className={`flex ${desktopMode ? 'size-9' : 'size-10'} items-center justify-center rounded-full text-oldGold hover:bg-black/5 transition-colors`}
                 >
-                    <ChevronLeft size={28} />
+                    <ChevronLeft size={desktopMode ? 24 : 28} />
                 </button>
                 {isAdmin && <button
                     onClick={handleToggleEdit}
@@ -444,7 +446,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
             <div className="flex-1">
                 {/* Hero Section */}
                 <motion.div
-                    className="flex flex-col items-center px-6 pt-2 pb-8"
+                    className={`flex flex-col items-center ${desktopMode ? 'px-5 pt-1 pb-6' : 'px-6 pt-2 pb-8'}`}
                     variants={fadeInUp}
                     initial="hidden"
                     animate="visible"
@@ -453,7 +455,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                         className="relative mb-6 group cursor-pointer"
                         onClick={() => isEditing ? setShowPortraitModal(true) : null}
                     >
-                        <div className="relative h-44 w-44 rounded-full shadow-lg overflow-hidden border-4 border-white bg-gray-200 ring-1 ring-black/5">
+                        <div className={`relative ${desktopMode ? 'h-36 w-36' : 'h-44 w-44'} rounded-full shadow-lg overflow-hidden border-4 border-white bg-gray-200 ring-1 ring-black/5`}>
                             {/* NOTE: 与本地页和设置页一致，统一使用 ui-avatars.com 生成首字母头像 */}
                             <img
                                 src={
@@ -473,7 +475,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                         </div>
                     </div>
 
-                    <div className="text-center space-y-2 w-full max-w-xs">
+                    <div className={`text-center space-y-2 w-full ${desktopMode ? 'max-w-sm' : 'max-w-xs'}`}>
                         {isEditing ? (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-3">
                                 <input
@@ -481,7 +483,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                     value={editName}
                                     onChange={(e) => setEditName(e.target.value)}
                                     onBlur={saveInfoIfChanged}
-                                    className="w-full text-center text-3xl font-serif font-bold text-textMain bg-transparent border-b border-oldGold/50 focus:border-oldGold focus:outline-none pb-1"
+                                    className={`w-full text-center ${desktopMode ? 'text-2xl' : 'text-3xl'} font-serif font-bold text-textMain bg-transparent border-b border-oldGold/50 focus:border-oldGold focus:outline-none pb-1`}
                                     placeholder={t.cloud.form.namePlaceholder}
                                 />
                                 <input
@@ -495,7 +497,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                             </div>
                         ) : (
                             <>
-                                <h1 className="text-3xl md:text-4xl font-serif font-bold text-textMain leading-tight">
+                                <h1 className={`${desktopMode ? 'text-[2.1rem]' : 'text-3xl md:text-4xl'} font-serif font-bold text-textMain leading-tight`}>
                                     {composer.name}
                                 </h1>
                                 <p className="text-xs font-sans font-bold tracking-widest text-textSub uppercase pt-2">
@@ -507,20 +509,30 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 </motion.div>
 
                 {/* Segmented Control */}
-                <div className="px-6 pb-6 sticky top-[64px] z-10 bg-background/70 backdrop-blur-2xl transition-all duration-200">
-                    <div className="relative flex h-11 w-full items-center rounded-xl bg-black/[0.06] backdrop-blur-xl p-[3px] border border-white/30 shadow-sm shadow-black/5">
+                <div className={`${desktopMode ? 'px-5 pb-5' : 'px-6 pb-6'} sticky top-[64px] z-10 bg-background/70 backdrop-blur-2xl transition-all duration-200`}>
+                    <div className={`relative flex ${desktopMode ? 'h-10' : 'h-11'} ${desktopMode ? 'w-full max-w-[760px] mx-auto' : 'w-full'} items-center rounded-xl ${desktopMode ? 'bg-white/18 backdrop-blur-2xl backdrop-saturate-150' : 'bg-black/[0.06] backdrop-blur-xl'} ${desktopMode ? 'p-[3px]' : 'p-[3px]'} ${desktopMode ? 'border border-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_10px_30px_rgba(0,0,0,0.07)]' : 'border border-white/30 shadow-sm shadow-black/5'} ${desktopMode ? 'overflow-visible' : 'overflow-hidden'}`}>
+                        {desktopMode && (
+                            <div className="pointer-events-none absolute inset-[1px] rounded-[10px] bg-gradient-to-b from-white/35 via-white/8 to-transparent" />
+                        )}
                         <div
                             className={`
-                                absolute top-[3px] bottom-[3px] rounded-[10px]
-                                bg-white/80 backdrop-blur-md border border-white/50 transition-all
+                                absolute rounded-[10px]
+                                ${desktopMode
+                                    ? 'bg-gradient-to-b from-white/92 via-white/75 to-white/60 backdrop-blur-3xl border border-white/75 shadow-[0_8px_24px_rgba(0,0,0,0.12),0_1px_0_rgba(255,255,255,0.95)]'
+                                    : 'bg-white/80 backdrop-blur-md border border-white/50'
+                                } transition-all
                                 ${isAnimating
-                                    ? 'duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-[1.02] shadow-[0_2px_12px_rgba(0,0,0,0.1),0_1px_4px_rgba(0,0,0,0.06)]'
+                                    ? `${desktopMode ? 'duration-[320ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-[1.015]' : 'duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-[1.02]'} shadow-[0_2px_12px_rgba(0,0,0,0.1),0_1px_4px_rgba(0,0,0,0.06)]`
                                     : 'duration-200 ease-out scale-100 shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0px_2px_rgba(0,0,0,0.04)]'
                                 }
                             `}
                             style={{
-                                width: 'calc(50% - 3px)',
-                                left: viewMode === 'Sheet Music' ? '3px' : 'calc(50%)',
+                                top: desktopMode ? '2px' : '3px',
+                                bottom: desktopMode ? '2px' : '3px',
+                                width: desktopMode ? 'calc(50% - 8px)' : 'calc(50% - 3px)',
+                                left: viewMode === 'Sheet Music'
+                                    ? (desktopMode ? '3px' : '3px')
+                                    : (desktopMode ? 'calc(50% + 5px)' : 'calc(50%)'),
                             }}
                         />
                         {(['Sheet Music', 'Recordings'] as const).map((mode) => (
@@ -530,12 +542,12 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                     if (viewMode !== mode) {
                                         setIsAnimating(true);
                                         setViewMode(mode);
-                                        setTimeout(() => setIsAnimating(false), 350);
+                                        setTimeout(() => setIsAnimating(false), desktopMode ? 280 : 350);
                                     }
                                 }}
                                 className={`
-                                    relative z-10 flex-1 h-full rounded-[10px] text-[13px] font-semibold transition-all duration-200
-                                    ${viewMode === mode ? 'text-textMain' : 'text-textSub/70 hover:text-textSub active:scale-95'}
+                                    relative z-10 flex-1 h-full rounded-[10px] ${desktopMode ? 'text-[12px]' : 'text-[13px]'} ${desktopMode ? 'font-semibold' : 'font-semibold'} transition-all duration-200
+                                    ${viewMode === mode ? 'text-textMain' : `text-textSub/70 hover:text-textSub ${desktopMode ? '' : 'active:scale-95'}`}
                                 `}
                             >
                                 {mode === 'Sheet Music' ? t.cloud.sheetMusicTab : t.cloud.recordingsTab}
@@ -559,7 +571,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                 {composer.works && composer.works.map((work) => (
                                     <div
                                         key={work.id}
-                                        className={`group flex items-center gap-4 px-6 py-4 hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative overflow-hidden ${!isEditing && work.fileUrl ? 'cursor-pointer' : ''}`}
+                                        className={`group flex items-center gap-4 ${desktopMode ? 'px-5 py-3.5' : 'px-6 py-4'} hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative overflow-hidden ${!isEditing && work.fileUrl ? 'cursor-pointer' : ''}`}
                                         onClick={() => {
                                             // NOTE: 非 admin 用户点击乐谱先弹版权确认弹窗
                                             if (!isEditing && work.fileUrl) {
@@ -621,7 +633,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                 {composer.recordings && composer.recordings.map((recording) => (
                                     <div
                                         key={recording.id}
-                                        className={`group flex items-center gap-4 px-6 py-4 hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative ${!isEditing && recording.fileUrl ? 'cursor-pointer' : ''}`}
+                                        className={`group flex items-center gap-4 ${desktopMode ? 'px-5 py-3.5' : 'px-6 py-4'} hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative ${!isEditing && recording.fileUrl ? 'cursor-pointer' : ''}`}
                                         onClick={() => {
                                             // NOTE: 非 admin 用户点击录音先弹版权确认弹窗
                                             if (!isEditing && recording.fileUrl) {
@@ -693,7 +705,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
             {/* FAB - 仅 admin 显示 */}
             {isAdmin && <motion.button
                 onClick={viewMode === 'Sheet Music' ? openAddWorkModal : openAddRecordingModal}
-                className="fixed bottom-24 left-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20"
+                className={`fixed size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20 ${desktopMode ? 'right-8 bottom-8' : 'bottom-24 left-6'}`}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.3, type: 'spring', stiffness: 400, damping: 20 }}
@@ -845,7 +857,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                     <input
                         type="file"
                         ref={recFileInputRef}
-                        accept="audio/*,.mp3,.wav,.flac,.m4a,.aac"
+                        accept="audio/*,video/mp4,.mp3,.wav,.flac,.m4a,.aac,.mp4"
                         className="hidden"
                         onChange={(e) => {
                             const file = e.target.files?.[0];
@@ -870,7 +882,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                     <Music size={22} />
                                 </div>
                                 <p className="text-textMain font-semibold text-sm">{t.cloud.form.selectFile}</p>
-                                <p className="text-textSub text-xs mt-0.5">MP3, WAV, FLAC</p>
+                                <p className="text-textSub text-xs mt-0.5">MP3, WAV, FLAC, MP4</p>
                             </>
                         )}
                     </div>

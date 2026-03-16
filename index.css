@@ -61,6 +61,25 @@ body {
     animation: shimmer 1.8s ease-in-out infinite;
 }
 
+/* Cloud skeleton shimmer: flowing highlight sweep for loading feedback */
+.shimmer-animation {
+    position: relative;
+    overflow: hidden;
+    background: #e6e8ec;
+}
+
+.shimmer-animation::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-120%);
+    background: linear-gradient(100deg,
+            rgba(255, 255, 255, 0) 15%,
+            rgba(255, 255, 255, 0.55) 50%,
+            rgba(255, 255, 255, 0) 85%);
+    animation: shimmer 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 /* Hide scrollbar for clean UI */
 .no-scrollbar::-webkit-scrollbar {
     display: none;

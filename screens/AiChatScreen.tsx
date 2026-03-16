@@ -4,6 +4,7 @@ import { Send, Sparkles, User, Loader2, AlertCircle, MessageSquare } from 'lucid
 import { useLanguage } from '../contexts/LanguageContext';
 import { askMusicQuestion } from '../services/gemini';
 import { staggerContainer, listItem } from '../utils/animations';
+import { isElectron } from '../services/platform';
 
 // =============================================
 // 打字机 Hook — 借鉴 ShipSwift SWTypewriterText 的逐字呈现概念
@@ -84,6 +85,7 @@ const bubbleVariants = {
 
 export const AiChatScreen: React.FC = () => {
     const { t } = useLanguage();
+    const desktopMode = isElectron();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -161,7 +163,7 @@ export const AiChatScreen: React.FC = () => {
         }
     };
 
-    // 渲染欢迎界面
+    // 渲染欢迎界面（移动端）
     const renderWelcome = () => (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -211,7 +213,7 @@ export const AiChatScreen: React.FC = () => {
 
     // 渲染消息列表
     const renderMessages = () => (
-        <div className="flex-1 overflow-y-auto px-4 py-4 pb-32 space-y-4">
+        <div className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 ${desktopMode ? 'pb-4' : 'pb-32'}`}>
             <AnimatePresence>
                 {messages.map((msg) => (
                     <motion.div
@@ -293,22 +295,73 @@ export const AiChatScreen: React.FC = () => {
         </div>
     );
 
-    return (
-        <div className="min-h-screen bg-background flex flex-col pb-20">
-            {/* NOTE: 沉浸式 header，滚动时有模糊效果和底部渐隐 */}
-            <header className="sticky top-0 z-30 bg-background/70 backdrop-blur-3xl backdrop-saturate-200 px-6 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
-                <h1 className="text-4xl font-bold tracking-tight text-textMain font-serif">
-                    {t.aiChat.title}
-                </h1>
+    const renderDesktopSidebar = () => (
+        <aside className="rounded-2xl border border-gray-100 bg-white/70 p-5 backdrop-blur-sm">
+            <div className="mb-5">
+                <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#F0F0EB]">
+                    <Sparkles className="h-6 w-6 text-oldGold opacity-80" strokeWidth={1.5} />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-textMain font-serif">{t.aiChat.title}</h2>
+                <p className="mt-2 text-sm text-textSub leading-relaxed">{t.aiChat.greeting}</p>
+            </div>
 
-            </header>
-            {/* Header 底部渐隐遮罩 */}
-            <div className="sticky top-[calc(env(safe-area-inset-top)+6.5rem)] z-20 h-4 bg-gradient-to-b from-background/80 to-transparent pointer-events-none" />
+            <p className="text-xs font-medium text-textSub uppercase tracking-wider mb-2 font-sans">
+                {t.aiChat.suggestionsLabel}
+            </p>
+            <div className="space-y-2">
+                {quickQuestions.map((q, index) => (
+                    <button
+                        key={index}
+                        onClick={() => handleSend(q)}
+                        className="w-full rounded-xl border border-gray-100 bg-white px-3 py-2.5 text-left text-sm text-textMain hover:bg-[#fcfbf9] transition-colors"
+                    >
+                        {q}
+                    </button>
+                ))}
+            </div>
+        </aside>
+    );
 
-            {/* 内容区域 */}
-            {messages.length === 0 ? renderWelcome() : renderMessages()}
+    const renderInputBar = () => {
+        if (desktopMode) {
+            return (
+                <div className="border-t border-gray-100 bg-white/90 px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder={t.aiChat.placeholder}
+                            disabled={isLoading}
+                            className="flex-1 h-11 px-4 bg-[#e8e6e1] rounded-xl text-sm text-textMain font-sans
+                           placeholder:text-[#8a8470] border-0
+                           focus:ring-2 focus:ring-oldGold/50 focus:bg-white
+                           transition-all duration-200 disabled:opacity-50"
+                        />
+                        <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => handleSend()}
+                            disabled={!inputValue.trim() || isLoading}
+                            className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center
+                        transition-all duration-200 ${inputValue.trim() && !isLoading
+                                    ? 'bg-oldGold text-white shadow-lg shadow-oldGold/30'
+                                    : 'bg-[#e8e6e1] text-[#8a8470]'
+                                }`}
+                        >
+                            {isLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Send className="w-4 h-4" />
+                            )}
+                        </motion.button>
+                    </div>
+                </div>
+            );
+        }
 
-            {/* NOTE: 底部输入区 - 使用与搜索框一致的样式 */}
+        return (
             <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-20 bg-background/80 backdrop-blur-2xl backdrop-saturate-150 border-t border-gray-100/50 pb-[env(safe-area-inset-bottom)]">
                 <div className="flex items-center gap-2.5 px-4 py-2.5">
                     <input
@@ -342,6 +395,46 @@ export const AiChatScreen: React.FC = () => {
                     </motion.button>
                 </div>
             </div>
+        );
+    };
+
+    return (
+        <div className={`min-h-screen bg-background ${desktopMode ? 'px-6 py-6' : 'flex flex-col pb-20'}`}>
+            {desktopMode ? (
+                <div className="grid h-[calc(100vh-3rem)] grid-cols-[320px_minmax(0,1fr)] gap-6">
+                    {renderDesktopSidebar()}
+                    <section className="flex min-h-0 flex-col rounded-2xl border border-gray-100 bg-white/70 backdrop-blur-sm">
+                        {messages.length === 0 ? (
+                            <div className="flex flex-1 items-center justify-center px-8 text-center">
+                                <div>
+                                    <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#F0F0EB]">
+                                        <Sparkles className="h-7 w-7 text-oldGold opacity-80" strokeWidth={1.5} />
+                                    </div>
+                                    <p className="text-base text-textSub">{t.aiChat.greeting}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            renderMessages()
+                        )}
+                        {renderInputBar()}
+                    </section>
+                </div>
+            ) : (
+                <>
+                    {/* NOTE: 沉浸式 header，滚动时有模糊效果和底部渐隐 */}
+                    <header className="sticky top-0 z-30 bg-background/70 backdrop-blur-3xl backdrop-saturate-200 px-6 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
+                        <h1 className="text-4xl font-bold tracking-tight text-textMain font-serif">
+                            {t.aiChat.title}
+                        </h1>
+                    </header>
+                    {/* Header 底部渐隐遮罩 */}
+                    <div className="sticky top-[calc(env(safe-area-inset-top)+6.5rem)] z-20 h-4 bg-gradient-to-b from-background/80 to-transparent pointer-events-none" />
+
+                    {/* 内容区域 */}
+                    {messages.length === 0 ? renderWelcome() : renderMessages()}
+                    {renderInputBar()}
+                </>
+            )}
         </div>
     );
 };

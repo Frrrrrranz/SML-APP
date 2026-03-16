@@ -4,12 +4,14 @@ import { Mail, Lock, User, ArrowRight, Loader2, CheckCircle, AlertCircle, Shield
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { fadeInUp, fadeInDown } from '../utils/animations';
+import { isElectron } from '../services/platform';
 
 type AuthMode = 'login' | 'register';
 
 export const AuthScreen: React.FC = () => {
     const { signIn, signUp } = useAuth();
     const { t, language, setLanguage } = useLanguage();
+    const desktopMode = isElectron();
 
     const [mode, setMode] = useState<AuthMode>('login');
     const [email, setEmail] = useState('');
@@ -21,6 +23,7 @@ export const AuthScreen: React.FC = () => {
     const [isFirstVisit, setIsFirstVisit] = useState(false);
     const [consentChecked, setConsentChecked] = useState(false);
     const [showPolicyModal, setShowPolicyModal] = useState(false);
+    const [showConsentWarningModal, setShowConsentWarningModal] = useState(false);
 
     // 检查是否是首次访问
     React.useEffect(() => {
@@ -37,7 +40,7 @@ export const AuthScreen: React.FC = () => {
         setLoading(true);
         // NOTE: 提交前校验隐私政策勾选状态
         if (!consentChecked) {
-            setError(t.auth.consentRequired);
+            setShowConsentWarningModal(true);
             setLoading(false);
             return;
         }
@@ -133,12 +136,12 @@ export const AuthScreen: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             {/* Header */}
-            <div className="flex-1 flex flex-col items-center px-6 pt-[calc(env(safe-area-inset-top)+6rem)]">
+            <div className={`flex-1 flex flex-col items-center px-6 ${desktopMode ? 'justify-center py-8' : 'pt-[calc(env(safe-area-inset-top)+6rem)]'}`}>
                 {/* Logo / Brand - fadeInDown 动画 */}
                 <motion.div
-                    className="mb-10 text-center"
+                    className={`${desktopMode ? 'mb-8' : 'mb-10'} text-center`}
                     variants={fadeInDown}
                     initial="hidden"
                     animate="visible"
@@ -153,21 +156,20 @@ export const AuthScreen: React.FC = () => {
 
                 {/* Form Card - fadeInUp 动画 */}
                 <motion.div
-                    className="w-full max-w-sm"
+                    className={`w-full ${desktopMode ? 'max-w-md' : 'max-w-sm'}`}
                     variants={fadeInUp}
                     initial="hidden"
                     animate="visible"
-                    layout
                 >
                     {/* 标题带 AnimatePresence 切换过渡 */}
                     <div className="h-10 mb-8 overflow-hidden relative">
                         <AnimatePresence mode="wait" initial={false}>
                             <motion.h2
                                 key={mode}
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.2 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.15 }}
                                 className="text-2xl font-bold font-serif text-textMain text-center absolute w-full left-0 top-0"
                             >
                                 {mode === 'login'
@@ -183,11 +185,11 @@ export const AuthScreen: React.FC = () => {
                         <AnimatePresence initial={false}>
                             {mode === 'register' && (
                                 <motion.div
-                                    className="relative overflow-hidden"
-                                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                                    animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
-                                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                    className="relative mb-6"
+                                    initial={{ opacity: 0, y: -6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -6 }}
+                                    transition={{ duration: 0.18, ease: 'easeOut' }}
                                 >
                                     <div className="absolute left-0 top-3 text-gray-400">
                                         <User size={20} />
@@ -197,7 +199,7 @@ export const AuthScreen: React.FC = () => {
                                         value={nickname}
                                         onChange={(e) => setNickname(e.target.value)}
                                         placeholder={t.auth.nickname}
-                                        className="w-full pl-8 pr-4 py-3 border-b-2 border-gray-200 bg-transparent text-textMain placeholder-gray-400 focus:border-oldGold focus:outline-none transition-colors text-lg"
+                                        className={`w-full pl-8 pr-4 py-3 border-b-2 border-gray-200 bg-transparent text-textMain placeholder-gray-400 focus:border-oldGold focus:outline-none transition-colors ${desktopMode ? 'text-base' : 'text-lg'}`}
                                         autoComplete="name"
                                     />
                                 </motion.div>
@@ -214,7 +216,7 @@ export const AuthScreen: React.FC = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder={t.auth.email}
-                                className="w-full pl-8 pr-4 py-3 border-b-2 border-gray-200 bg-transparent text-textMain placeholder-gray-400 focus:border-oldGold focus:outline-none transition-colors text-lg"
+                                className={`w-full pl-8 pr-4 py-3 border-b-2 border-gray-200 bg-transparent text-textMain placeholder-gray-400 focus:border-oldGold focus:outline-none transition-colors ${desktopMode ? 'text-base' : 'text-lg'}`}
                                 autoComplete="email"
                                 required
                             />
@@ -230,7 +232,7 @@ export const AuthScreen: React.FC = () => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder={t.auth.password}
-                                className="w-full pl-8 pr-4 py-3 border-b-2 border-gray-200 bg-transparent text-textMain placeholder-gray-400 focus:border-oldGold focus:outline-none transition-colors text-lg"
+                                className={`w-full pl-8 pr-4 py-3 border-b-2 border-gray-200 bg-transparent text-textMain placeholder-gray-400 focus:border-oldGold focus:outline-none transition-colors ${desktopMode ? 'text-base' : 'text-lg'}`}
                                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                                 required
                                 minLength={6}
@@ -243,8 +245,6 @@ export const AuthScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => {
                                     setConsentChecked(!consentChecked);
-                                    // NOTE: 切换勾选状态时清除之前的相关错误
-                                    if (error === t.auth.consentRequired) setError(null);
                                 }}
                                 className={`mt-0.5 w-[18px] h-[18px] min-w-[18px] rounded border-2 flex items-center justify-center transition-all duration-200 ${consentChecked
                                     ? 'bg-oldGold border-oldGold'
@@ -298,7 +298,6 @@ export const AuthScreen: React.FC = () => {
                             type="submit"
                             disabled={loading}
                             whileTap={{ scale: 0.98 }}
-                            layout
                             className={`
                 w-full py-4 rounded-full font-bold text-lg text-white
                 flex items-center justify-center gap-2
@@ -380,7 +379,7 @@ export const AuthScreen: React.FC = () => {
 
             {/* Footer */}
             <motion.div
-                className="py-6 text-center text-gray-400 text-xs"
+                className={`${desktopMode ? 'py-3' : 'py-6'} text-center text-gray-400 text-xs`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.4 }}
@@ -390,6 +389,49 @@ export const AuthScreen: React.FC = () => {
 
             {/* 隐私政策详情 Modal - 居中弹窗，响应式适配手机/桌面 */}
             <AnimatePresence>
+                {showConsentWarningModal && (
+                    <motion.div
+                        className="fixed inset-0 z-[70] flex items-center justify-center px-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <div
+                            className="absolute inset-0 bg-black/40"
+                            onClick={() => setShowConsentWarningModal(false)}
+                        />
+                        <motion.div
+                            className="relative z-10 w-full max-w-sm bg-background rounded-2xl p-5 shadow-2xl"
+                            initial={{ opacity: 0, scale: 0.96 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.96 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                        >
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 text-red-500">
+                                    <AlertCircle size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-base font-semibold text-textMain">
+                                        {language === 'zh' ? '提示' : 'Notice'}
+                                    </p>
+                                    <p className="mt-1 text-sm text-textSub leading-relaxed">
+                                        {t.auth.consentRequired}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowConsentWarningModal(false)}
+                                className="mt-5 w-full rounded-full bg-oldGold py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity"
+                            >
+                                {language === 'zh' ? '知道了' : 'Got it'}
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+
                 {showPolicyModal && (
                     <motion.div
                         className="fixed inset-0 z-50 flex items-center justify-center px-4"

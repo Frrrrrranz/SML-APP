@@ -230,6 +230,7 @@ const getMimeType = (ext: string): string => {
         pdf: 'application/pdf',
         mp3: 'audio/mpeg',
         wav: 'audio/wav',
+        mp4: 'video/mp4',
         m4a: 'audio/mp4',
         ogg: 'audio/ogg',
         aac: 'audio/aac',

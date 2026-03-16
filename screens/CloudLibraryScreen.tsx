@@ -31,6 +31,8 @@ export const CloudLibraryScreen: React.FC = () => {
     const [pullingIds, setPullingIds] = useState<Record<string, 'pulling' | 'done' | 'error'>>({});
     // 拉取进度
     const [pullProgress, setPullProgress] = useState<Record<string, number>>({});
+    // 每个作曲家的拉取错误信息（用于可观测性与重试提示）
+    const [pullErrors, setPullErrors] = useState<Record<string, string>>({});
     // 确认弹窗
     const [confirmPullId, setConfirmPullId] = useState<string | null>(null);
 
@@ -61,11 +63,21 @@ export const CloudLibraryScreen: React.FC = () => {
         loadCloudComposers();
     }, [loadCloudComposers]);
 
+    const getErrorMessage = (err: unknown): string => {
+        if (err instanceof Error && err.message) return err.message;
+        return t.cloud.loadError;
+    };
+
     // 执行拉取
     const handlePull = async (composerId: string) => {
         setConfirmPullId(null);
         setPullingIds(prev => ({ ...prev, [composerId]: 'pulling' }));
         setPullProgress(prev => ({ ...prev, [composerId]: 0 }));
+        setPullErrors(prev => {
+            const next = { ...prev };
+            delete next[composerId];
+            return next;
+        });
 
         try {
             await pullComposerToLocal(composerId, (progress) => {
@@ -75,6 +87,7 @@ export const CloudLibraryScreen: React.FC = () => {
         } catch (err) {
             console.error('Failed to pull composer:', err);
             setPullingIds(prev => ({ ...prev, [composerId]: 'error' }));
+            setPullErrors(prev => ({ ...prev, [composerId]: getErrorMessage(err) }));
         }
     };
 
@@ -288,6 +301,12 @@ export const CloudLibraryScreen: React.FC = () => {
                                             className="h-full bg-oldGold transition-all duration-300"
                                             style={{ width: `${progress}%` }}
                                         />
+                                    </div>
+                                )}
+
+                                {pullState === 'error' && (
+                                    <div className="px-4 pb-3 text-xs text-red-500">
+                                        {pullErrors[composer.id] || t.cloud.loadError}
                                     </div>
                                 )}
                             </motion.div>

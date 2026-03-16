@@ -204,6 +204,15 @@ const createWindow = (): void => {
  * NOTE: 通过 webContents.executeJavaScript 触发前端路由导航
  */
 const createMenu = (): void => {
+    const shouldShowAppMenu =
+        process.argv.includes('--dev') || process.env.SML_DESKTOP_SHOW_MENU === '1';
+
+    // 默认隐藏桌面菜单栏；仅在开发调试或显式开关下显示
+    if (!shouldShowAppMenu) {
+        Menu.setApplicationMenu(null);
+        return;
+    }
+
     const template: Electron.MenuItemConstructorOptions[] = [
         {
             label: '文件',

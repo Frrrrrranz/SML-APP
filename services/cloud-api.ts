@@ -13,11 +13,9 @@ import {
     dbCreateComposer,
     dbCreateWork,
     dbCreateRecording,
-    dbUploadWorkFile,
-    dbUploadRecordingFileUrl,
+    dbGetComposers,
 } from './local-database';
-import { readLocalFile, saveLocalFile, getLocalFileUri } from './local-file-storage';
-import { Filesystem, Directory } from '@capacitor/filesystem';
+import { readLocalFile, saveLocalFile } from './local-file-storage';
 
 /**
  * 云端 API 服务层
@@ -248,7 +246,7 @@ export const pushComposerToCloud = async (
 
 /**
  * 从云端拉取作曲家到本地 SQLite
- * NOTE: 创建为新的本地作曲家，名称追加 (副本)，不做合并/覆盖
+ * NOTE: 默认保持原名称；若创建失败（例如未来出现名称冲突约束），兜底追加一个点号 "."
  * @param cloudComposerId 云端作曲家 ID
  * @param onProgress 进度回调 (0-100)
  */
@@ -279,12 +277,14 @@ export const pullComposerToLocal = async (
         }
     }
 
-    // 2. 在本地 SQLite 创建作曲家（名称追加副本标识）
-    const localComposer = await dbCreateComposer({
-        name: `${cloudComposer.name} (副本)`,
-        period: cloudComposer.period,
-        image: localImagePath,
-    });
+    // 2. 在本地 SQLite 创建作曲家：
+    // - 当前本地库对 name 无唯一约束，重名可并存，默认直接使用原名
+    // - 如未来出现名称冲突等异常，再兜底追加 "."
+    const localComposer = await createLocalComposerWithFallbackName(
+        cloudComposer.name,
+        cloudComposer.period,
+        localImagePath
+    );
 
     reportProgress();
 
@@ -374,7 +374,7 @@ const uploadLocalFileToCloud = async (
         const blob = await response.blob();
         base64Data = await blobToBase64(blob);
     } else {
-        // 原始相对路径（如 SML/avatars/xxx.jpg），使用 Filesystem API 读取
+        // 原始相对路径（如 SML/avatars/xxx.jpg），读取本地存储
         base64Data = await readLocalFile(localPath);
     }
 
@@ -429,36 +429,39 @@ const downloadCloudFileToLocal = async (
 
     const blob = await response.blob();
 
-    // 转为 base64
-    const base64 = await blobToBase64(blob);
+    // 统一走 local-file-storage：Electron 使用 IPC，Android 使用 Filesystem
+    const mimeType = blob.type || getMimeType(ext);
+    const file = new File([blob], `${fileId}.${ext}`, { type: mimeType });
+    return await saveLocalFile(file, category, fileId);
+};
 
-    // 保存到本地文件系统
-    const dirMap = {
-        sheets: 'SML/sheets',
-        recordings: 'SML/recordings',
-        avatars: 'SML/avatars',
-    };
-
-    const filePath = `${dirMap[category]}/${fileId}.${ext}`;
-
-    // 确保目录存在
+const createLocalComposerWithFallbackName = async (
+    baseName: string,
+    period: string,
+    image: string
+) => {
     try {
-        await Filesystem.mkdir({
-            path: dirMap[category],
-            directory: Directory.Data,
-            recursive: true,
+        return await dbCreateComposer({
+            name: baseName,
+            period,
+            image,
         });
-    } catch {
-        // 目录已存在
+    } catch (error) {
+        console.warn('Create local composer with original name failed, trying fallback "." suffix:', error);
     }
 
-    await Filesystem.writeFile({
-        path: filePath,
-        data: base64,
-        directory: Directory.Data,
-    });
+    const localComposers = await dbGetComposers();
+    let fallbackName = `${baseName}.`;
+    const existingNames = new Set(localComposers.map((c: Record<string, unknown>) => String(c.name || '')));
+    while (existingNames.has(fallbackName)) {
+        fallbackName += '.';
+    }
 
-    return filePath;
+    return await dbCreateComposer({
+        name: fallbackName,
+        period,
+        image,
+    });
 };
 
 /**
@@ -490,7 +493,10 @@ const getMimeType = (ext: string): string => {
         webp: 'image/webp',
         mp3: 'audio/mpeg',
         wav: 'audio/wav',
+        mp4: 'video/mp4',
         m4a: 'audio/mp4',
+        aac: 'audio/aac',
+        flac: 'audio/flac',
         ogg: 'audio/ogg',
     };
     return mimeMap[ext] || 'application/octet-stream';

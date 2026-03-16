@@ -10,8 +10,6 @@ import {
     onAuthStateChange,
 } from '../supabase';
 
-import { isElectron } from '../services/platform';
-
 // 认证上下文类型定义
 interface AuthContextType {
     user: User | null;
@@ -37,14 +35,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     useEffect(() => {
         const initAuth = async () => {
             try {
-                // NOTE: Electron 桌面端使用纯本地存储，不需要云端认证
-                // 直接设置空 session 让 AuthGuard 放行到 AppContent
-                if (isElectron()) {
-                    setSession({} as Session);
-                    setLoading(false);
-                    return;
-                }
-
                 const currentSession = await getSession();
                 setSession(currentSession);
                 setUser(currentSession?.user ?? null);
@@ -52,6 +42,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (currentSession?.user) {
                     const userProfile = await getCurrentProfile();
                     setProfile(userProfile);
+                } else {
+                    setProfile(null);
                 }
             } catch (error) {
                 console.error('Failed to initialize auth:', error);
@@ -61,9 +53,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
 
         initAuth();
-
-        // NOTE: Electron 不需要监听 Supabase 认证状态变化
-        if (isElectron()) return;
 
         // 监听认证状态变化
         const { data: { subscription } } = onAuthStateChange(async (event, newSession) => {

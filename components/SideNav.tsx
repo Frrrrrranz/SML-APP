@@ -2,6 +2,7 @@ import React from 'react';
 import { Library, Search, Settings, Sparkles, Cloud } from 'lucide-react';
 import { NavItem } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { APP_VERSION } from '../constants/app-version';
 
 /**
  * 桌面端侧边栏导航组件
@@ -73,7 +74,7 @@ export const SideNav: React.FC<SideNavProps> = ({ currentPath, onNavigate }) => 
 
             {/* 底部版本号 */}
             <div className="px-5 py-3 border-t border-[#2a2a4a]">
-                <p className="text-gray-500 text-[10px]">Desktop v1.0.0</p>
+                <p className="text-gray-500 text-[10px]">Desktop v{APP_VERSION}</p>
             </div>
         </nav>
     );

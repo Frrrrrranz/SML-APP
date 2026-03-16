@@ -9,6 +9,7 @@ import { staggerContainer, listItem, fabAnimation } from '../utils/animations';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getLocalFileUri } from '../services/local-file-storage';
 import { getComposerAvatarUrl } from '../utils/avatar';
+import { isElectron } from '../services/platform';
 
 interface ComposersScreenProps {
   composers: Composer[];
@@ -21,6 +22,7 @@ interface ComposersScreenProps {
 export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isLoading = false, onComposerSelect, onAddComposer, onUpdateComposer }) => {
   const { t } = useLanguage();
   const { storage } = useStorage();
+  const electronMode = isElectron();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [period, setPeriod] = useState('');
@@ -213,7 +215,8 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
       {/* FAB - Add Composer */}
       <motion.button
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-24 left-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center z-30 ring-2 ring-white/20"
+        data-add-composer="true"
+        className={`fixed size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center z-30 ring-2 ring-white/20 ${electronMode ? 'right-8 bottom-8' : 'left-6 bottom-24'}`}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.3, type: 'spring', stiffness: 400, damping: 20 }}
