@@ -85,7 +85,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                                         ? t.update.restartHint
                                         : status === 'error'
                                             ? t.update.failedDesc
-                                            : `${t.update.newVersion} v${version}`}
+                                            : `${t.update.newVersion} v${version} · OTA`}
                             </p>
                         </div>
 
