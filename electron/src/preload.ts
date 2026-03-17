@@ -76,17 +76,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('update:install'),
 
     /** 监听更新事件 */
-    onUpdateAvailable: (callback: (data: { version: string }) => void) =>
-        ipcRenderer.on('update:available', (_event, data) => callback(data)),
+    onUpdateAvailable: (callback: (data: { version: string }) => void): (() => void) => {
+        const listener = (_event: unknown, data: { version: string }) => callback(data);
+        ipcRenderer.on('update:available', listener);
+        return () => ipcRenderer.removeListener('update:available', listener);
+    },
 
-    onUpdateProgress: (callback: (data: { percent: number }) => void) =>
-        ipcRenderer.on('update:progress', (_event, data) => callback(data)),
+    onUpdateProgress: (callback: (data: { percent: number }) => void): (() => void) => {
+        const listener = (_event: unknown, data: { percent: number }) => callback(data);
+        ipcRenderer.on('update:progress', listener);
+        return () => ipcRenderer.removeListener('update:progress', listener);
+    },
 
-    onUpdateDownloaded: (callback: () => void) =>
-        ipcRenderer.on('update:downloaded', () => callback()),
+    onUpdateDownloaded: (callback: () => void): (() => void) => {
+        const listener = () => callback();
+        ipcRenderer.on('update:downloaded', listener);
+        return () => ipcRenderer.removeListener('update:downloaded', listener);
+    },
 
-    onUpdateError: (callback: (data: { message: string }) => void) =>
-        ipcRenderer.on('update:error', (_event, data) => callback(data)),
+    onUpdateError: (callback: (data: { message: string }) => void): (() => void) => {
+        const listener = (_event: unknown, data: { message: string }) => callback(data);
+        ipcRenderer.on('update:error', listener);
+        return () => ipcRenderer.removeListener('update:error', listener);
+    },
 
     // =============================================
     // 桌面端 Web 资源热更新

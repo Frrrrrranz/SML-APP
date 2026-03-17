@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LogOut, Languages, ChevronRight, HardDrive, Upload, Check } from 'lucide-react';
 import { Modal } from '../components/Modal';
-import { APP_VERSION, WEB_VERSION } from '../constants/app-version';
+import { WEB_VERSION } from '../constants/app-version';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useStorage } from '../contexts/StorageContext';
@@ -271,10 +271,7 @@ export const SettingsScreen: React.FC = () => {
             &copy; 2026 SML
           </p>
           <p className="mt-1 text-[10px] text-gray-300">
-            Desktop v{APP_VERSION}
-          </p>
-          <p className="mt-0.5 text-[10px] text-gray-300">
-            Web OTA v{WEB_VERSION}
+            v{WEB_VERSION}
           </p>
         </motion.div>
       </motion.div>

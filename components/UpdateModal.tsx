@@ -12,6 +12,8 @@ interface UpdateModalProps {
     status: 'prompt' | 'downloading' | 'success' | 'error';
     /** 下载进度 (0-100) */
     progress: number;
+    /** 更新来源标签（如 OTA / Desktop） */
+    sourceLabel?: string;
     /** 点击"立即更新" */
     onConfirm: () => void;
     /** 点击"稍后" */
@@ -25,6 +27,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     version,
     status,
     progress,
+    sourceLabel,
     onConfirm,
     onDismiss,
     onReload,
@@ -85,7 +88,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                                         ? t.update.restartHint
                                         : status === 'error'
                                             ? t.update.failedDesc
-                                            : `${t.update.newVersion} v${version} · OTA`}
+                                            : `${t.update.newVersion} v${version}${sourceLabel ? ` · ${sourceLabel}` : ''}`}
                             </p>
                         </div>
 

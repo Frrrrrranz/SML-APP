@@ -26,10 +26,10 @@ interface ElectronAPI {
     checkForUpdate: () => Promise<unknown>;
     downloadUpdate: () => Promise<void>;
     installUpdate: () => Promise<void>;
-    onUpdateAvailable: (callback: (data: { version: string }) => void) => void;
-    onUpdateProgress: (callback: (data: { percent: number }) => void) => void;
-    onUpdateDownloaded: (callback: () => void) => void;
-    onUpdateError: (callback: (data: { message: string }) => void) => void;
+    onUpdateAvailable: (callback: (data: { version: string }) => void) => (() => void);
+    onUpdateProgress: (callback: (data: { percent: number }) => void) => (() => void);
+    onUpdateDownloaded: (callback: () => void) => (() => void);
+    onUpdateError: (callback: (data: { message: string }) => void) => (() => void);
 
     // 桌面端 Web 资源热更新
     desktopWebCheckForUpdate: (currentVersion: string) => Promise<{
