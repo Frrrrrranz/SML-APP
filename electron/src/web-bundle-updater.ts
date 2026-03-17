@@ -58,6 +58,13 @@ const compareVersion = (a: string, b: string): number => {
     return 0;
 };
 
+const getCoreVersion = (version: string): string =>
+    version
+        .split('.')
+        .slice(0, 3)
+        .map((s) => String(Number(s || 0)))
+        .join('.');
+
 const readInstalledVersion = (): string | null => {
     try {
         if (!fs.existsSync(ACTIVE_MANIFEST_PATH)) return null;
@@ -68,6 +75,27 @@ const readInstalledVersion = (): string | null => {
         console.warn('[DesktopWebUpdate] Failed to read installed manifest:', error);
         return null;
     }
+};
+
+const shouldUseActiveBundle = (): boolean => {
+    const activeIndex = path.join(ACTIVE_DIR, 'index.html');
+    if (!fs.existsSync(activeIndex)) return false;
+
+    const installed = readInstalledVersion();
+    if (!installed) {
+        console.warn('[DesktopWebUpdate] Active bundle found but manifest missing, fallback to built-in dist');
+        return false;
+    }
+
+    const desktopVersion = app.getVersion();
+    if (getCoreVersion(installed) !== getCoreVersion(desktopVersion)) {
+        console.warn(
+            `[DesktopWebUpdate] Ignore stale active bundle ${installed} for desktop ${desktopVersion}, fallback to built-in dist`
+        );
+        return false;
+    }
+
+    return true;
 };
 
 const writeManifest = (version: string, sha256: string): void => {
@@ -218,8 +246,9 @@ const switchActiveBundle = (version: string, sha256: string): void => {
 };
 
 export const getPreferredRendererEntry = (): string => {
-    const activeIndex = path.join(ACTIVE_DIR, 'index.html');
-    if (fs.existsSync(activeIndex)) return activeIndex;
+    if (shouldUseActiveBundle()) {
+        return path.join(ACTIVE_DIR, 'index.html');
+    }
     return path.join(__dirname, '..', '..', 'dist', 'index.html');
 };
 
