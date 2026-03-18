@@ -1,14 +1,14 @@
-// Ӧ�ô�汾�ţ�Android APK + Desktop ���ã�
-// NOTE: �� package.json �� version �ֶκ� git tag ����һ��
+﻿// 应用大版本号（Android APK + Desktop 共用）
+// NOTE: 与 package.json 的 version 字段和 git tag 保持一致
 export const APP_VERSION = '1.0.11';
 
-// Android Web ��Դ�汾�ţ�Android OTA �ȸ���ר�ã�
-// NOTE: ǰ��λ���汾һ�£�����λ��ʾ Android OTA �ȸ��´���
-export const ANDROID_WEB_VERSION = '1.0.11.0';
+// Android Web 资源版本号（Android OTA 热更新专用）
+// NOTE: 前三位与大版本一致，第四位表示 Android OTA 热更新次数
+export const ANDROID_WEB_VERSION = '1.0.11.1';
 
-// Desktop Web ��Դ�汾�ţ�Desktop OTA �ȸ���ר�ã�
-// NOTE: ǰ��λ���汾һ�£�����λ��ʾ Desktop OTA �ȸ��´���
+// Desktop Web 资源版本号（Desktop OTA 热更新专用）
+// NOTE: 前三位与大版本一致，第四位表示 Desktop OTA 热更新次数
 export const DESKTOP_WEB_VERSION = '1.0.11.0';
 
-// GitHub �ֿ���Ϣ�����ڼ�� OTA ����
+// GitHub 仓库信息，用于检查 OTA 更新
 export const GITHUB_REPO = 'Frrrrrranz/SML-APP';

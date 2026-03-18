@@ -801,7 +801,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                   setPendingFileUrl(null);
                 }
               }}
-              className="w-full py-4 rounded-full font-bold text-white bg-oldGold hover:bg-[#d4ac26] transition-colors shadow-lg shadow-oldGold/20"
+              className="w-full py-4 rounded-full font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30"
             >
               {t.common.copyright.agree}
             </button>
