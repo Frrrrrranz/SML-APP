@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LogOut, Languages, ChevronRight, HardDrive, Upload, Check } from 'lucide-react';
 import { Modal } from '../components/Modal';
-import { WEB_VERSION } from '../constants/app-version';
+import { ANDROID_WEB_VERSION, APP_VERSION, DESKTOP_WEB_VERSION } from '../constants/app-version';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useStorage } from '../contexts/StorageContext';
 import { getStorageUsage } from '../services/local-file-storage';
+import { isAndroid, isElectron } from '../services/platform';
 import { pushComposerToCloud } from '../services/cloud-api';
 import { Composer } from '../types';
 import { staggerContainer, listItem } from '../utils/animations';
@@ -31,6 +32,11 @@ export const SettingsScreen: React.FC = () => {
   const [isPushing, setIsPushing] = useState(false);
   const [pushProgress, setPushProgress] = useState(0);
   const [pushResult, setPushResult] = useState<'success' | 'error' | null>(null);
+  const versionDisplay = isAndroid()
+    ? `android v${ANDROID_WEB_VERSION}`
+    : isElectron()
+      ? `desktop v${DESKTOP_WEB_VERSION}`
+      : `web v${APP_VERSION}`;
 
   useEffect(() => {
     getStorageUsage().then(setLocalUsage).catch(console.error);
@@ -271,7 +277,7 @@ export const SettingsScreen: React.FC = () => {
             &copy; 2026 SML
           </p>
           <p className="mt-1 text-[10px] text-gray-300">
-            v{WEB_VERSION}
+            {versionDisplay}
           </p>
         </motion.div>
       </motion.div>

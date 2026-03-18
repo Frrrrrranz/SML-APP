@@ -22,7 +22,7 @@ import { pageTransition } from './utils/animations';
 import { SplashScreen } from './screens/SplashScreen';
 import { checkForUpdate, downloadUpdate, applyUpdateAndReload, notifyAppReady } from './services/ota-update';
 import { isAndroid, isElectron } from './services/platform';
-import { WEB_VERSION } from './constants/app-version';
+import { DESKTOP_WEB_VERSION } from './constants/app-version';
 
 
 
@@ -101,7 +101,7 @@ const AppContent: React.FC = () => {
     if (!isElectron() || !window.electronAPI?.desktopWebCheckForUpdate) return;
     const doDesktopCheck = async () => {
       try {
-        const update = await window.electronAPI!.desktopWebCheckForUpdate(WEB_VERSION);
+        const update = await window.electronAPI!.desktopWebCheckForUpdate(DESKTOP_WEB_VERSION);
         if (update && update.isWebUpdate) {
           setUpdateSource('ota');
           setUpdateVersion(update.version);

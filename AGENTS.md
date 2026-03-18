@@ -27,7 +27,7 @@
 - 新建项目专属 skill 时，存放到 `.agents/skills/<skill-name>/SKILL.md`。
 - 新建项目专属 workflow 时，存放到 `.agents/workflows/<name>.md`。
 - 新建 Kiro spec 时，存放到 `.kiro/specs/<spec-name>/`。
-- 涉及运行、推送、版本、OTA、桌面发布时，优先参考 `.agents/workflows/run.md`、`.agents/workflows/push.md`、`.agents/workflows/version.md`、`.agents/workflows/ota.md`、`.agents/workflows/release-desktop.md`。
+- 涉及运行、推送、版本、OTA、桌面发布时，优先参考 `.agents/workflows/run.md`、`.agents/workflows/push.md`、`.agents/workflows/version.md`、`.agents/workflows/android-web-ota.md`、`.agents/workflows/release-desktop.md`。
 
 ## Code Style
 

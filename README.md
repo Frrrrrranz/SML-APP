@@ -136,13 +136,16 @@ npm run build:electron
 ### 1. 小更新：Android / Web OTA
 
 - 用于不涉及原生层变更的前端资源更新
-- 版本号来自 `constants/app-version.ts` 中的 `WEB_VERSION`
-- 发布格式为 `web-v<版本号>`
-- 通过 GitHub Release 上传 `web-bundle.zip`
+- 版本号来自 `constants/app-version.ts`：
+  - Android OTA 使用 `ANDROID_WEB_VERSION`
+  - Desktop OTA 使用 `DESKTOP_WEB_VERSION`
+- 发布格式分平台：
+  - Android：`web-android-v<ANDROID_WEB_VERSION>` + `web-bundle-android.zip`
+  - Desktop：`web-desktop-v<DESKTOP_WEB_VERSION>` + `web-bundle-desktop.zip`
 - Android 端通过 `@capgo/capacitor-updater` 检查并应用 OTA 更新
 
 参考：
-- `.agents/workflows/ota.md`
+- `.agents/workflows/android-web-ota.md`
 - `services/ota-update.ts`
 
 ### 2. 大更新：双端正式发布
@@ -164,7 +167,7 @@ npm run build:electron
 
 ```bash
 # OTA 小更新
-# 参考 .agents/workflows/ota.md
+# 参考 .agents/workflows/android-web-ota.md
 
 # 大版本发布（同时构建 Windows + Android）
 git tag v1.0.1

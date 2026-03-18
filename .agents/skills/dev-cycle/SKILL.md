@@ -35,7 +35,7 @@ description: SML-APP 完整开发周期：从需求到部署的标准流程
 - 没有安装新的 Capacitor 原生插件
 - 没有修改 `capacitor.config.ts`
 
-执行：**`/ota`**（已包含版本递增 + 构建 + 打包 + GitHub Release + Git 推送）
+执行：**`/android-web-ota`**（已包含版本递增 + 构建 + 打包 + GitHub Release + Git 推送）
 
 ### 路径 B：APK 大版本更新（涉及原生改动）
 
@@ -60,14 +60,14 @@ description: SML-APP 完整开发周期：从需求到部署的标准流程
   │
   └─ 部署：判断改动类型
        │
-       ├─ 纯 Web 改动 ──→ /ota（完整 OTA 流程）
+       ├─ 纯 Web 改动 ──→ /android-web-ota（完整 OTA 流程）
        │
        └─ 涉及原生 ────→ /version → Android Studio 打包
 ```
 
 ## 注意事项
 
-- `/ota` 已内置 build + push，不需要再单独执行 `/run` 和 `/push`
+- `/android-web-ota` 已内置 build + push，不需要再单独执行 `/run` 和 `/push`
 - `/version` 已内置 `/run` + `/push`，同理
 - commit message 始终使用**中文**，格式：`<type>: <描述>`
 - 所有代码注释、文档使用简体中文

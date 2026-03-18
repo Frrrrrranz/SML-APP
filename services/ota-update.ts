@@ -1,5 +1,5 @@
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
-import { WEB_VERSION, GITHUB_REPO } from '../constants/app-version';
+import { ANDROID_WEB_VERSION, GITHUB_REPO } from '../constants/app-version';
 
 /**
  * OTA 热更新服务
@@ -74,7 +74,7 @@ export const checkForUpdate = async (): Promise<UpdateInfo | null> => {
 
             if (tag.startsWith(ANDROID_WEB_RELEASE_TAG_PREFIX)) {
                 const remoteVersion = tag.replace(ANDROID_WEB_RELEASE_TAG_PREFIX, '');
-                const cmp = compareVersions(WEB_VERSION, remoteVersion);
+                const cmp = compareVersions(ANDROID_WEB_VERSION, remoteVersion);
 
                 if (cmp > 0) {
                     const bundleAsset = release.assets?.find(
