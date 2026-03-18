@@ -439,7 +439,7 @@ export const AuthScreen: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => setShowConsentWarningModal(false)}
-                                className="mt-5 w-full rounded-full bg-oldGold py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity"
+                                className="mt-5 w-full rounded-full bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700 transition-colors"
                             >
                                 {language === 'zh' ? '知道了' : 'Got it'}
                             </button>
