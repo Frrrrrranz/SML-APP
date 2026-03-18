@@ -5,6 +5,30 @@ import Database from 'better-sqlite3';
 import { initAutoUpdater } from './auto-updater';
 import { getPreferredRendererEntry, initDesktopWebBundleUpdater } from './web-bundle-updater';
 
+const LEGACY_USER_DATA_DIR_NAME = 'opus---sheet-music-manager';
+const DESKTOP_USER_DATA_DIR_NAME = 'SML';
+
+const configureDesktopUserDataPath = (): void => {
+    const appDataRoot = app.getPath('appData');
+    const targetUserDataDir = path.join(appDataRoot, DESKTOP_USER_DATA_DIR_NAME);
+    const legacyUserDataDir = path.join(appDataRoot, LEGACY_USER_DATA_DIR_NAME);
+
+    if (app.getPath('userData') !== targetUserDataDir) {
+        app.setPath('userData', targetUserDataDir);
+    }
+
+    // Migrate old folder name to the new one once, so existing users keep their local data.
+    if (!fs.existsSync(targetUserDataDir) && fs.existsSync(legacyUserDataDir)) {
+        try {
+            fs.renameSync(legacyUserDataDir, targetUserDataDir);
+        } catch (error) {
+            console.warn('[Electron] Failed to migrate legacy userData directory:', error);
+        }
+    }
+};
+
+configureDesktopUserDataPath();
+
 /**
  * SML Desktop — Electron 主进程
  * NOTE: 负责创建窗口、管理 SQLite 数据库、处理文件系统 IPC 调用
