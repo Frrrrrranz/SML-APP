@@ -1,7 +1,7 @@
 {
   "name": "opus---sheet-music-manager",
   "private": true,
-  "version": "1.0.9",
+  "version": "1.0.10",
   "type": "module",
   "main": "electron/dist/main.js",
   "scripts": {

@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - 'v*'
+# NOTE: 非 OTA 的 v* Tag 发布要求版本号三端一致：
+# - package.json version
+# - constants/app-version.ts APP_VERSION（以及 WEB_VERSION 前三位）
+# - android/app/build.gradle versionName
 
 # NOTE: 需要写入权限以创建 GitHub Release
 permissions:
@@ -27,6 +31,32 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate version consistency for tag release
+        shell: bash
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          APP_VERSION=$(node -e "const fs=require('fs');const c=fs.readFileSync('constants/app-version.ts','utf8');const m=c.match(/APP_VERSION\\s*=\\s*'([^']+)'/);if(!m){process.exit(2)};process.stdout.write(m[1]);")
+          WEB_VERSION=$(node -e "const fs=require('fs');const c=fs.readFileSync('constants/app-version.ts','utf8');const m=c.match(/WEB_VERSION\\s*=\\s*'([^']+)'/);if(!m){process.exit(2)};process.stdout.write(m[1]);")
+          ANDROID_VERSION=$(node -e "const fs=require('fs');const c=fs.readFileSync('android/app/build.gradle','utf8');const m=c.match(/versionName\\s+\\\"([^\\\"]+)\\\"/);if(!m){process.exit(2)};process.stdout.write(m[1]);")
+
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "package.json version ($PACKAGE_VERSION) != tag version ($TAG_VERSION)"
+            exit 1
+          fi
+          if [ "$APP_VERSION" != "$TAG_VERSION" ]; then
+            echo "APP_VERSION ($APP_VERSION) != tag version ($TAG_VERSION)"
+            exit 1
+          fi
+          if [ "$ANDROID_VERSION" != "$TAG_VERSION" ]; then
+            echo "android versionName ($ANDROID_VERSION) != tag version ($TAG_VERSION)"
+            exit 1
+          fi
+          if [[ "$WEB_VERSION" != "$TAG_VERSION."* ]]; then
+            echo "WEB_VERSION ($WEB_VERSION) must start with $TAG_VERSION."
+            exit 1
+          fi
 
       - name: Rebuild native modules for Electron
         run: npx @electron/rebuild -m . -w better-sqlite3
