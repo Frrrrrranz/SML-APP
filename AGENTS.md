@@ -19,14 +19,13 @@
 - 业务代码优先看 `components`、`screens`、`services`、`contexts`、`utils`、`electron`、`android`、`supabase`。
 - 工程配置优先看 `package.json`、`vite.config.ts`、`capacitor.config.ts`、`electron-builder.yml`。
 - 项目级协作规则优先看 `.agents/skills` 与 `.agents/workflows`。
-- `.kiro` 目录主要视为需求、设计、任务、测试记录，不默认当作业务源码。
+- `.antigravity` 目录主要视为工具配置或运行痕迹，不默认当作业务源码。
 - `.vscode`、`.antigravity` 相关文件优先视为工具配置或运行痕迹，不作为产品逻辑依据。
 
 ## Skills And Workflows
 
 - 新建项目专属 skill 时，存放到 `.agents/skills/<skill-name>/SKILL.md`。
 - 新建项目专属 workflow 时，存放到 `.agents/workflows/<name>.md`。
-- 新建 Kiro spec 时，存放到 `.kiro/specs/<spec-name>/`。
 - 涉及运行、推送、版本、OTA、桌面发布时，优先参考 `.agents/workflows/run.md`、`.agents/workflows/push.md`、`.agents/workflows/version.md`、`.agents/workflows/android-web-ota.md`、`.agents/workflows/release-desktop.md`。
 
 ## Code Style
@@ -42,7 +41,7 @@
 
 - 先阅读相关文件，再开始修改，不要基于猜测直接改动。
 - 默认做最小必要改动，不主动做大范围重构。
-- 不要随意清理或删除 `.agents`、`.kiro`、`.github/workflows`、`electron`、`android` 中的文件。
+- 不要随意清理或删除 `.agents`、`.github/workflows`、`electron`、`android` 中的文件。
 - 如果发现历史遗留代码、旧方案或重复实现，先判断是否仍被主流程使用，再决定是否调整。
 - 对简单任务直接执行；对影响较大的任务，先给出简短计划再实施。
 
@@ -51,7 +50,7 @@
 - 当前环境 shell 为 PowerShell。
 - 不要在命令里使用 `&&`，应拆成分行命令或分别执行。
 - 涉及 Git 提交时，优先精确暂存目标文件，不要默认使用 `git add .`。
-- 推送前先检查是否存在未确认的 `.kiro/`、临时文件或工具产物，避免误提交。
+- 推送前先检查是否存在未确认的临时文件或工具产物，避免误提交。
 
 ## Desktop-First Boundary
 

@@ -22,7 +22,7 @@ Rename-Item dist_<version>.zip web-bundle-android.zip
 ```bash
 gh release create web-android-v<ANDROID_WEB_VERSION> web-bundle-android.zip --title "Android Web Update v<ANDROID_WEB_VERSION>" --notes "<更新说明>" --prerelease --latest=false --repo Frrrrrranz/SML-APP
 ```
-5. 如需清理临时文件：
+5. Release 创建成功后，删除本地临时包：
 ```bash
 Remove-Item web-bundle-android.zip
 ```

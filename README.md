@@ -72,7 +72,6 @@ SML-APP/
 |- .agents/
 |  |- skills/
 |  `- workflows/
-|- .kiro/
 `- electron-builder.yml
 ```
 

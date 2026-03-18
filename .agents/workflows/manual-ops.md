@@ -23,7 +23,7 @@ git diff --stat
 
 检查点：
 - 确认只包含本次要提交的文件
-- 避免误带 `.kiro/`、临时文件、构建产物
+- 避免误带临时文件、构建产物
 - 不要默认 `git add .`
 
 ## 2. 版本字段规则
@@ -62,7 +62,11 @@ Rename-Item $zip.FullName "web-bundle-android.zip"
 ```powershell
 gh release create web-android-v<ANDROID_WEB_VERSION> web-bundle-android.zip --title "Android Web Update v<ANDROID_WEB_VERSION>" --notes "<更新说明>" --prerelease --latest=false --repo Frrrrrranz/SML-APP
 ```
-4. 提交版本变更并推送：
+4. 发布成功后删除本地包：
+```powershell
+Remove-Item web-bundle-android.zip
+```
+5. 提交版本变更并推送：
 ```powershell
 git add constants/app-version.ts
 git commit -m "chore: bump android web ota to v<ANDROID_WEB_VERSION>"
@@ -83,7 +87,11 @@ Rename-Item $zip.FullName "web-bundle-desktop.zip"
 ```powershell
 gh release create web-desktop-v<DESKTOP_WEB_VERSION> web-bundle-desktop.zip --title "Desktop Web OTA v<DESKTOP_WEB_VERSION>" --notes "<更新说明>" --prerelease --latest=false --repo Frrrrrranz/SML-APP
 ```
-4. 提交版本变更并推送：
+4. 发布成功后删除本地包：
+```powershell
+Remove-Item web-bundle-desktop.zip
+```
+5. 提交版本变更并推送：
 ```powershell
 git add constants/app-version.ts
 git commit -m "chore: bump desktop web ota to v<DESKTOP_WEB_VERSION>"

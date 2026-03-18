@@ -30,7 +30,11 @@ Rename-Item dist_<version>.zip web-bundle-desktop.zip
 ```bash
 gh release create web-desktop-v<DESKTOP_WEB_VERSION> web-bundle-desktop.zip --title "Desktop Web OTA v<DESKTOP_WEB_VERSION>" --notes "<更新说明>" --prerelease --latest=false --repo Frrrrrranz/SML-APP
 ```
-5. 如需保留源码记录，再提交 `DESKTOP_WEB_VERSION` 变更并推送到主分支。
+5. Release 创建成功后，删除本地临时包：
+```bash
+Remove-Item web-bundle-desktop.zip
+```
+6. 如需保留源码记录，再提交 `DESKTOP_WEB_VERSION` 变更并推送到主分支。
 
 ## 强制规则
 
