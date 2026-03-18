@@ -6,8 +6,11 @@ on:
       - 'v*'
 # NOTE: 非 OTA 的 v* Tag 发布要求版本号三端一致：
 # - package.json version
-# - constants/app-version.ts APP_VERSION（以及 WEB_VERSION 前三位）
+# - constants/app-version.ts APP_VERSION
 # - android/app/build.gradle versionName
+# 并且 OTA 位重置为 .0：
+# - ANDROID_WEB_VERSION = <tag>.0
+# - DESKTOP_WEB_VERSION = <tag>.0
 
 # NOTE: 需要写入权限以创建 GitHub Release
 permissions:
@@ -36,9 +39,10 @@ jobs:
         shell: bash
         run: |
           TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_VERSION=$(node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(j.version);")
           APP_VERSION=$(node -e "const fs=require('fs');const c=fs.readFileSync('constants/app-version.ts','utf8');const m=c.match(/APP_VERSION\\s*=\\s*'([^']+)'/);if(!m){process.exit(2)};process.stdout.write(m[1]);")
-          WEB_VERSION=$(node -e "const fs=require('fs');const c=fs.readFileSync('constants/app-version.ts','utf8');const m=c.match(/WEB_VERSION\\s*=\\s*'([^']+)'/);if(!m){process.exit(2)};process.stdout.write(m[1]);")
+          ANDROID_WEB_VERSION=$(node -e "const fs=require('fs');const c=fs.readFileSync('constants/app-version.ts','utf8');const m=c.match(/ANDROID_WEB_VERSION\\s*=\\s*'([^']+)'/);if(!m){process.exit(2)};process.stdout.write(m[1]);")
+          DESKTOP_WEB_VERSION=$(node -e "const fs=require('fs');const c=fs.readFileSync('constants/app-version.ts','utf8');const m=c.match(/DESKTOP_WEB_VERSION\\s*=\\s*'([^']+)'/);if(!m){process.exit(2)};process.stdout.write(m[1]);")
           ANDROID_VERSION=$(node -e "const fs=require('fs');const c=fs.readFileSync('android/app/build.gradle','utf8');const m=c.match(/versionName\\s+\\\"([^\\\"]+)\\\"/);if(!m){process.exit(2)};process.stdout.write(m[1]);")
 
           if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
@@ -53,8 +57,12 @@ jobs:
             echo "android versionName ($ANDROID_VERSION) != tag version ($TAG_VERSION)"
             exit 1
           fi
-          if [[ "$WEB_VERSION" != "$TAG_VERSION."* ]]; then
-            echo "WEB_VERSION ($WEB_VERSION) must start with $TAG_VERSION."
+          if [ "$ANDROID_WEB_VERSION" != "$TAG_VERSION.0" ]; then
+            echo "ANDROID_WEB_VERSION ($ANDROID_WEB_VERSION) must equal $TAG_VERSION.0 for non-OTA release"
+            exit 1
+          fi
+          if [ "$DESKTOP_WEB_VERSION" != "$TAG_VERSION.0" ]; then
+            echo "DESKTOP_WEB_VERSION ($DESKTOP_WEB_VERSION) must equal $TAG_VERSION.0 for non-OTA release"
             exit 1
           fi
 
