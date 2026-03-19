@@ -298,8 +298,7 @@ export const AiChatScreen: React.FC = () => {
     const renderDesktopSidebar = () => (
         <aside className="rounded-2xl border border-gray-100 bg-white/70 p-5 backdrop-blur-sm">
             <div className="mb-5">
-                <h2 className="text-4xl font-bold tracking-tight text-textMain font-serif">{t.aiChat.title}</h2>
-                <p className="mt-2 text-sm text-textSub leading-relaxed">{t.aiChat.greeting}</p>
+                <p className="text-sm text-textSub leading-relaxed">{t.aiChat.greeting}</p>
             </div>
 
             <p className="text-xs font-medium text-textSub uppercase tracking-wider mb-2 font-sans">
@@ -396,24 +395,32 @@ export const AiChatScreen: React.FC = () => {
     };
 
     return (
-        <div className={`min-h-screen bg-background ${desktopMode ? 'px-6 py-6' : 'flex flex-col pb-20'}`}>
+        <div className={`min-h-screen bg-background ${desktopMode ? 'pb-6' : 'flex flex-col pb-20'}`}>
             {desktopMode ? (
-                <div className="grid h-[calc(100vh-3rem)] grid-cols-[320px_minmax(0,1fr)] gap-6">
-                    {renderDesktopSidebar()}
-                    <section className="flex min-h-0 flex-col rounded-2xl border border-gray-100 bg-white/70 backdrop-blur-sm">
-                        {messages.length === 0 ? (
-                            <div className="flex flex-1 items-center justify-center px-8 text-center">
-                                <div>
-                                    <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#F0F0EB]">
-                                        <Sparkles className="h-10 w-10 text-oldGold opacity-80" strokeWidth={1.5} />
+                <div className="min-h-screen">
+                    <header className="sticky top-0 z-10 bg-background/60 backdrop-blur-2xl backdrop-saturate-150 px-6 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4 transition-all duration-300">
+                        <h1 className="text-4xl font-bold tracking-tight text-textMain font-serif">
+                            {t.aiChat.title}
+                        </h1>
+                    </header>
+
+                    <div className="grid h-[calc(100vh-8.5rem)] grid-cols-[320px_minmax(0,1fr)] gap-6 px-6 pb-6">
+                        {renderDesktopSidebar()}
+                        <section className="flex min-h-0 flex-col rounded-2xl border border-gray-100 bg-white/70 backdrop-blur-sm">
+                            {messages.length === 0 ? (
+                                <div className="flex flex-1 items-center justify-center px-8 text-center">
+                                    <div>
+                                        <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#F0F0EB]">
+                                            <Sparkles className="h-10 w-10 text-oldGold opacity-80" strokeWidth={1.5} />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            renderMessages()
-                        )}
-                        {renderInputBar()}
-                    </section>
+                            ) : (
+                                renderMessages()
+                            )}
+                            {renderInputBar()}
+                        </section>
+                    </div>
                 </div>
             ) : (
                 <>
