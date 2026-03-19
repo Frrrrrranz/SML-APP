@@ -22,6 +22,12 @@ interface ComposerDetailScreenProps {
   onBack: () => void;
 }
 
+type PendingDeleteItem = {
+  type: 'work' | 'recording';
+  id: string;
+  message: string;
+};
+
 export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   composerId,
   composers,
@@ -34,11 +40,11 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const { storage } = useStorage();
   const desktopMode = isElectron();
 
-  // 缁狅紕鎮婇崨妯绘綀闂勬劕鍨介弬顓ㄧ窗閸╄桨绨憴鎺曞
+  // 当前用户是否为管理员
   const isAdmin = authProfile?.role === 'admin';
 
   const [viewMode, setViewMode] = useState<ViewMode>('Sheet Music');
-  const [isAnimating, setIsAnimating] = useState(false); // 閻劋绨?Apple 妞嬪孩鐗稿鎴濇健閸斻劎鏁?
+  const [isAnimating, setIsAnimating] = useState(false); // 切换 Tab 时的高亮滑块动画状态
   const [isEditing, setIsEditing] = useState(false);
 
   // Modal States
@@ -47,7 +53,8 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const [showPortraitModal, setShowPortraitModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
-  // NOTE: 闂堢偟顓搁悶鍡楁喅閻愮懓鍤弬鍥︽閺冭绱濋崗鍫濊剨閻楀牊娼堢涵顔款吇閿涘瞼鈥樼拋銈呮倵閻劎閮寸紒鐔风安閻劍澧﹀鈧?
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<PendingDeleteItem | null>(null);
+  // NOTE: 非管理员点击文件时先记录目标链接，待版权弹窗确认后再打开
   const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
 
   // Work Form States
@@ -77,8 +84,8 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const composer = composers.find(c => c.id === composerId);
 
   /**
-   * 婢跺嫮鎮婇弬鍥︽閹垫挸绱戦敍鍫㈡暏缁崵绮烘惔鏃傛暏閹存牜澧楅弶鍐€樼拋銈呮倵閻劎閮寸紒鐔风安閻㈩煉绱?
-   * NOTE: 缁狅紕鎮婇崨妯兼纯閹恒儲澧﹀鈧敍宀勬姜缁狅紕鎮婇崨姗€娓堕崗鍫⑩€樼拋銈囧閺夊啫锛愰弰?
+   * 打开乐谱或录音文件。
+   * NOTE: 管理员直接打开，非管理员先弹版权确认。
    */
   const handleOpenFile = async (fileUrl: string) => {
     if (isAdmin) {
@@ -112,7 +119,14 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
   if (!composer) return <div className="p-8 text-center text-gray-500">Composer not found</div>;
 
-  // NOTE: 鐏炲懍鑵戠仦鏇犮仛妫ｆ牕鐡уВ宥呫仈閸嶅骏绱濇稉搴濈隘缁旑垯绻氶幐浣风閼锋番鈧倽瀚㈢€涙ê婀懛顏勭暰娑斿銇旈崓?URL 閸掓瑥鐫嶇粈鍝勬禈閻楀浄绱濋崥锕€鍨仦鏇犮仛妫ｆ牕鐡уВ宥冣偓?
+  const formatRecordingMetaForDisplay = (performer?: string, year?: string) => {
+    const performerText = performer?.trim() || '';
+    const yearText = year?.trim() || '';
+    if (performerText && yearText) return `${performerText} / ${yearText}`;
+    return performerText || yearText;
+  };
+
+  // NOTE: 仅当头像不是默认占位图且不是 ui-avatars 生成图时，视为自定义头像
   const hasCustomAvatar = !!(composer.image && !composer.image.includes('ui-avatars.com') && composer.image !== '/composer-placeholder.png');
 
   // --- Handlers: General ---
@@ -123,7 +137,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const handleUpdateInfo = async (field: 'name' | 'period', value: string) => {
     try {
       const updatedComposer = await storage.dataApi.updateComposer(composer.id, { [field]: value });
-      // NOTE: API 鏉╂柨娲栭惃?updatedComposer 娑撳秴瀵橀崥?works/recordings閿涘矂娓剁憰浣风箽閻ｆ瑧骞囬張澶嬫殶閹?
+      // NOTE: 更新作曲家基础信息时，保留当前 works/recordings，避免列表被覆盖
       onUpdateComposer({
         ...updatedComposer,
         works: composer.works || [],
@@ -135,7 +149,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   };
 
   const confirmDeleteComposer = async () => {
-    // NOTE: 閹碘偓閺堝鏁ら幋宄版綆閸欘垰鍨归梽銈勭稊閺囨彃顔嶉敍鍫熸拱閸︾増鏆熼幑顕嗙礆
+    // NOTE: 删除作曲家会连带删除关联作品与录音（由数据层处理）
     try {
       await storage.dataApi.deleteComposer(composer.id);
       onDeleteComposer(composer.id);
@@ -149,12 +163,12 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 妤犲矁鐦夐弬鍥︽缁鐎?
+    // 校验文件类型
     if (!file.type.startsWith('image/')) {
       alert('请选择图片文件');
       return;
     }
-    // 妤犲矁鐦夐弬鍥︽婢堆冪毈 (閺堚偓婢?5MB)
+    // 校验文件大小（<= 5MB）
     if (file.size > 5 * 1024 * 1024) {
       alert('图片大小不能超过 5MB');
       return;
@@ -162,26 +176,25 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
     setIsAvatarUploading(true);
     try {
-      // 閸掔娀娅庨弮褍銇旈崓蹇ョ礄婵″倹鐏夐弰顖濆殰鐎规矮绠熸稉濠佺炊閻ㄥ嫸绱?
+      // 删除旧头像文件
       if (composer.image) {
         await storage.deleteAvatar(composer.image);
       }
 
-      // 娑撳﹣绱堕弬鏉裤仈閸?
+      // 上传新头像
       const avatarUrl = await storage.uploadAvatar(file, composer.id);
 
-      // 閺囧瓨鏌婇弫鐗堝祦鎼?
+      // 写入数据库
       const updatedComposer = await storage.dataApi.updateComposer(composer.id, { image: avatarUrl });
 
-      // NOTE: dbUpdateComposer 鏉╂柨娲栭惃鍕Ц SQLite 娑擃厾娈戦惄绋款嚠鐠侯垰绶為敍鍫濐洤 SML/avatars/xxx.jpg閿涘绱?
-      // 闂団偓鐟曚浇娴嗛幑顫礋 WebView 閸欘垵顔栭梻顔炬畱 URI 閹靛秷鍏橀崷?<img> 娑擃厽妯夌粈?
+      // NOTE: 本地数据库可能保存相对路径，WebView 显示前需转换为可访问 URI
       let resolvedImage = updatedComposer.image;
       if (resolvedImage && !resolvedImage.startsWith('http')) {
         const fileUri = await getLocalFileUri(resolvedImage);
         if (fileUri) resolvedImage = Capacitor.convertFileSrc(fileUri);
       }
 
-      // 閺囧瓨鏌婇張顒€婀撮悩鑸碘偓?
+      // 更新页面状态
       onUpdateComposer({
         ...composer,
         image: resolvedImage
@@ -193,7 +206,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       alert('上传头像失败，请重试');
     } finally {
       setIsAvatarUploading(false);
-      // 闁插秶鐤?input 娴犮儰绌堕崣顖欎簰闁插秴顦查柅澶嬪閸氬奔绔撮弬鍥︽
+      // 清空 input，保证可重复选择同一文件
       if (avatarInputRef.current) {
         avatarInputRef.current.value = '';
       }
@@ -203,12 +216,12 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const handleRestoreDefaultAvatar = async () => {
     setIsAvatarUploading(true);
     try {
-      // 閸掔娀娅庨懛顏勭暰娑斿銇旈崓蹇ョ礄婵″倹鐏夐張澶涚礆
+      // 删除当前头像文件
       if (composer.image) {
         await storage.deleteAvatar(composer.image);
       }
 
-      // NOTE: 娴ｈ法鏁ら崶鍝勭暰閸楃姳缍呯粭锕€娴橀悧鍥风礉闁灝鍘ら崺杞扮艾閸氬秴鐡ч惃鍕仈閸嶅繐婀弨鐟版倳閸氬簼绗夐崥灞绢劄
+      // NOTE: 恢复为内置占位图路径，避免空头像带来的显示不一致
       const defaultImage = '/composer-placeholder.png';
       const updatedComposer = await storage.dataApi.updateComposer(composer.id, { image: defaultImage });
 
@@ -229,19 +242,11 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   // --- Handlers: Works (Sheet Music) ---
   const handleDeleteWork = async (workId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // NOTE: 閹碘偓閺堝鏁ら幋宄版綆閸欘垰婀張顒€婀撮崚鐘绘珟娑旀劘姘ㄩ敍灞肩瑝瑜板崬鎼锋禍鎴狀伂閺佺増宓?
-    if (window.confirm(t.cloud.deleteWorkConfirm)) {
-      try {
-        await storage.dataApi.deleteWork(workId);
-        const updatedWorks = composer.works.filter(w => w.id !== workId);
-        onUpdateComposer({
-          ...composer,
-          works: updatedWorks
-        });
-      } catch (error) {
-        console.error('Failed to delete work:', error);
-      }
-    }
+    setPendingDeleteItem({
+      type: 'work',
+      id: workId,
+      message: t.cloud.deleteWorkConfirm
+    });
   };
 
   const openAddWorkModal = () => {
@@ -304,7 +309,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           edition: workFormEdition || getDefaultWorkEdition(language)
         });
 
-        // 婵″倹鐏夐柅澶嬪娴滃棙鏌婇弬鍥︽閿涘奔绗傛导鐘茶嫙閺囧瓨鏌?
+        // 如有新文件则覆盖上传，并回写 fileUrl
         if (workFormFiles.length > 0) {
           const uploadFile = await prepareSheetUploadFile(workFormFiles, editingWorkId, workFormTitle);
           const fileUrl = await storage.uploadSheetMusic(uploadFile, editingWorkId);
@@ -329,7 +334,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         };
         const newWork = await storage.dataApi.createWork(newWorkPayload);
 
-        // 婵″倹鐏夐柅澶嬪娴滃棙鏋冩禒璁圭礉娑撳﹣绱堕獮鑸垫纯閺?
+        // 新建后如选择了文件则上传并关联
         if (workFormFiles.length > 0) {
           const uploadFile = await prepareSheetUploadFile(workFormFiles, newWork.id, workFormTitle);
           const fileUrl = await storage.uploadSheetMusic(uploadFile, newWork.id);
@@ -362,18 +367,36 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   // --- Handlers: Recordings ---
   const handleDeleteRecording = async (recId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // NOTE: 閹碘偓閺堝鏁ら幋宄版綆閸欘垰婀張顒€婀撮崚鐘绘珟瑜版洟鐓堕敍灞肩瑝瑜板崬鎼锋禍鎴狀伂閺佺増宓?
-    if (window.confirm(t.cloud.deleteRecordingConfirm)) {
-      try {
-        await storage.dataApi.deleteRecording(recId);
-        const updatedRecordings = composer.recordings.filter(r => r.id !== recId);
+    setPendingDeleteItem({
+      type: 'recording',
+      id: recId,
+      message: t.cloud.deleteRecordingConfirm
+    });
+  };
+
+  const confirmDeleteItem = async () => {
+    if (!pendingDeleteItem) return;
+
+    try {
+      if (pendingDeleteItem.type === 'work') {
+        await storage.dataApi.deleteWork(pendingDeleteItem.id);
+        const updatedWorks = composer.works.filter(w => w.id !== pendingDeleteItem.id);
+        onUpdateComposer({
+          ...composer,
+          works: updatedWorks
+        });
+      } else {
+        await storage.dataApi.deleteRecording(pendingDeleteItem.id);
+        const updatedRecordings = composer.recordings.filter(r => r.id !== pendingDeleteItem.id);
         onUpdateComposer({
           ...composer,
           recordings: updatedRecordings
         });
-      } catch (error) {
-        console.error('Failed to delete recording:', error);
       }
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+    } finally {
+      setPendingDeleteItem(null);
     }
   };
 
@@ -411,7 +434,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           duration: recFormDuration || '0:00'
         });
 
-        // 婵″倹鐏夐柅澶嬪娴滃棙鏌婇弬鍥︽閿涘奔绗傛导鐘茶嫙閺囧瓨鏌?
+        // 编辑时若重新选择文件，则重新上传并更新链接
         if (recFormFile) {
           const fileUrl = await storage.uploadRecordingFile(recFormFile, editingRecordingId);
           const recWithFile = await storage.dataApi.uploadRecordingFileUrl(editingRecordingId, fileUrl);
@@ -433,7 +456,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         };
         const newRec = await storage.dataApi.createRecording(newRecPayload);
 
-        // 婵″倹鐏夐柅澶嬪娴滃棙鏋冩禒璁圭礉娑撳﹣绱堕獮鑸垫纯閺?
+        // 新建录音后如有文件则上传并绑定 fileUrl
         if (recFormFile) {
           const fileUrl = await storage.uploadRecordingFile(recFormFile, newRec.id);
           const recWithFile = await storage.dataApi.uploadRecordingFileUrl(newRec.id, fileUrl);
@@ -485,7 +508,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       </div>
 
       <div className="flex-1">
-        {/* Hero Section - 鐢?fadeInUp 鏉╂稑鍙嗛崝銊ф暰 */}
+        {/* 顶部信息区 */}
         <motion.div
           className={`flex flex-col items-center ${desktopMode ? 'px-5 pt-1 pb-6' : 'px-6 pt-2 pb-8'}`}
           variants={fadeInUp}
@@ -497,13 +520,13 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             onClick={() => isEditing ? setShowPortraitModal(true) : null}
           >
             <div className={`relative ${desktopMode ? 'h-36 w-36' : 'h-44 w-44'} rounded-full shadow-lg overflow-hidden border-4 border-white bg-gray-200 ring-1 ring-black/5`}>
-              {/* NOTE: 娑撳氦顔曠純顕€銆夋稉鈧懛杈剧礉缂佺喍绔存担璺ㄦ暏 ui-avatars.com 閻㈢喐鍨氭＃鏍х摟濮ｅ秴銇旈崓?*/}
+              {/* NOTE: 与列表页保持一致：无自定义头像时使用 ui-avatars 生成头像 */}
               <img
                 src={hasCustomAvatar ? composer.image! : getComposerAvatarUrl(composer.name)}
                 alt={composer.name}
                 className="w-full h-full object-cover"
               />
-              {/* NOTE: 缂傛牞绶Ο鈥崇础娑撳褰旈崝鐘插磹闁繑妲戞鎴ｅ闁喚鍍甸敍灞肩箽閻ｆ瑥銇旈崓蹇撳敶鐎圭懓褰茬憴?*/}
+              {/* NOTE: 编辑态覆盖半透明遮罩，提示头像可点击修改 */}
               {isEditing && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center animate-in fade-in duration-200">
                   <Camera className="text-white drop-shadow-md" size={32} />
@@ -512,7 +535,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             </div>
           </div>
 
-          {/* NOTE: min-h 娣囨繆鐦夌紓鏍帆閹椒绗岄棃鐐电椽鏉堟垶鈧胶鐡戞姗堢礉闂冨弶顒涢崚鍥ㄥ床閺冨爼銆夐棃銏ょ彯鎼达箒鐑﹂崣?*/}
+          {/* NOTE: 预留最小高度，保证列表较短时底部文案不与内容重叠 */}
           <div className={`text-center w-full ${desktopMode ? 'max-w-sm min-h-[68px]' : 'max-w-xs min-h-[80px]'} flex flex-col items-center justify-center`}>
             {isEditing ? (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-3 w-full">
@@ -544,13 +567,13 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           </div>
         </motion.div>
 
-        {/* Segmented Control - Apple Music 妞嬪孩鐗稿В娑氬箵閻犲啯绮﹂崝?Tab */}
+        {/* 分段切换：乐谱 / 录音 */}
         <div className={`${desktopMode ? 'px-5 pb-5' : 'px-6 pb-6'} sticky top-[64px] z-10 bg-background/70 backdrop-blur-2xl transition-all duration-200`}>
           <div className={`relative flex ${desktopMode ? 'h-10' : 'h-11'} ${desktopMode ? 'w-full max-w-[760px] mx-auto' : 'w-full'} items-center rounded-xl ${desktopMode ? 'bg-white/18 backdrop-blur-2xl backdrop-saturate-150' : 'bg-black/[0.06] backdrop-blur-xl'} ${desktopMode ? 'p-[3px]' : 'p-[3px]'} ${desktopMode ? 'border border-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_10px_30px_rgba(0,0,0,0.07)]' : 'border border-white/30 shadow-sm shadow-black/5'} ${desktopMode ? 'overflow-visible' : 'overflow-hidden'}`}>
             {desktopMode && (
               <div className="pointer-events-none absolute inset-[1px] rounded-[10px] bg-gradient-to-b from-white/35 via-white/8 to-transparent" />
             )}
-            {/* 濠婃垵濮╅幐鍥┿仛閸?- Apple Music 濮ｆ稓骞撻悹鍐棑閺?*/}
+            {/* 滑块高亮层 */}
             <div
               className={`
                 absolute rounded-[10px]
@@ -573,16 +596,16 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                   : (desktopMode ? 'calc(50% + 5px)' : 'calc(50%)'),
               }}
             />
-            {/* Tab 閹稿鎸?*/}
+            {/* Tab 按钮 */}
             {(['Sheet Music', 'Recordings'] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => {
                   if (viewMode !== mode) {
-                    // 鐟欙箑褰傞崝銊ф暰閿涙艾鍘涢弨鎯с亣
+                    // 启动切换动画
                     setIsAnimating(true);
                     setViewMode(mode);
-                    // 閸斻劎鏁剧€瑰本鍨氶崥搴划婢?
+                    // 动画结束后复位状态
                     setTimeout(() => setIsAnimating(false), desktopMode ? 280 : 350);
                   }
                 }}
@@ -618,7 +641,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                   <div
                     key={work.id}
                     onClick={async () => {
-                      // NOTE: 闂堢偟绱潏鎴災佸蹇庣瑓閿涘瞼鍋ｉ崙缁樻蒋閻╊喚鏁ょ化鑽ょ埠鎼存梻鏁ら幍鎾崇磻 PDF
+                      // NOTE: 非编辑态且存在文件时，点击直接打开乐谱
                       if (!isEditing && work.fileUrl) {
                         await handleOpenFile(work.fileUrl);
                       }
@@ -626,7 +649,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                     className={`group flex items-center gap-4 ${desktopMode ? 'px-5 py-3.5' : 'px-6 py-4'} hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative overflow-hidden ${!isEditing && work.fileUrl ? 'cursor-pointer' : ''
                       }`}
                   >
-                    {/* NOTE: 閸掔娀娅庨幐澶愭尦娴犲懎婀紓鏍帆濡€崇础娑撴柧璐熺粻锛勬倞閸涙ɑ妞傞弰鍓с仛 */}
+                    {/* 编辑态显示删除按钮，非编辑态显示文件图标 */}
                     {isEditing ? (
                       <button
                         onClick={(e) => handleDeleteWork(work.id, e)}
@@ -649,7 +672,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                       </p>
                     </div>
 
-                    {/* 閸欘亝婀佺紓鏍帆濡€崇础娑撳妯夌粈铏圭椽鏉堟垶瀵滈柦?*/}
+                    {/* 编辑态右侧显示“编辑作品”入口 */}
                     {isEditing && (
                       <div className="shrink-0">
                         <button
@@ -683,7 +706,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                   <div
                     key={recording.id}
                     onClick={async () => {
-                      // NOTE: 闂堢偟绱潏鎴災佸蹇庣瑓閿涘瞼鍋ｉ崙缁樻蒋閻╊喚鏁ょ化鑽ょ埠鎼存梻鏁ら幘顓熸杹闂婃娊顣?
+                      // NOTE: 非编辑态且存在文件时，点击直接打开录音
                       if (!isEditing && recording.fileUrl) {
                         await handleOpenFile(recording.fileUrl);
                       }
@@ -691,7 +714,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                     className={`group flex items-center gap-4 ${desktopMode ? 'px-5 py-3.5' : 'px-6 py-4'} hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative ${!isEditing && recording.fileUrl ? 'cursor-pointer' : ''
                       }`}
                   >
-                    {/* NOTE: 瑜版洟鐓舵稉宥呭帒鐠佺鍨归梽銈忕礉婵绮撻弰鍓с仛閹绢厽鏂侀崶鐐垼 */}
+                    {/* 录音图标：有文件高亮、无文件置灰 */}
                     <div className={`shrink-0 opacity-80 group-hover:opacity-100 transition-opacity ${recording.fileUrl ? 'text-oldGold' : 'text-gray-400'}`}>
                       <PlayCircle size={28} strokeWidth={1.5} />
                     </div>
@@ -701,7 +724,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                         {recording.title}
                       </p>
                       <p className="text-textSub text-sm leading-normal truncate font-medium mt-0.5">
-                        {recording.performer} / {recording.year}
+                        {formatRecordingMetaForDisplay(recording.performer, recording.year)}
                       </p>
                     </div>
 
@@ -732,7 +755,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           </AnimatePresence>
         </div>
 
-        {/* Delete Composer Button - 缂傛牞绶Ο鈥崇础娑撳妯夌粈?*/}
+        {/* 编辑态下显示删除作曲家按钮 */}
         {isEditing ? (
           <div className="px-6 py-8 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <button
@@ -757,7 +780,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         </div>
       )}
 
-      {/* FAB - 鐢箑鑴婇崗銉ュЗ閻?*/}
+      {/* 悬浮新增按钮 */}
       <motion.button
         onClick={viewMode === 'Sheet Music' ? openAddWorkModal : openAddRecordingModal}
         className={`fixed size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20 ${desktopMode ? 'right-8 bottom-8' : 'bottom-24 left-6'}`}
@@ -770,6 +793,34 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       </motion.button>
 
       {/* === MODALS === */}
+      <Modal
+        isOpen={!!pendingDeleteItem}
+        onClose={() => setPendingDeleteItem(null)}
+        variant="center"
+      >
+        <div className="flex flex-col items-center text-center font-sans px-2">
+          <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-red-50 text-red-500">
+            <AlertCircle size={32} strokeWidth={1.5} />
+          </div>
+          <p className="text-textSub mb-8 text-[15px] leading-relaxed">
+            {pendingDeleteItem?.message}
+          </p>
+          <div className="flex w-full gap-3">
+            <button
+              onClick={() => setPendingDeleteItem(null)}
+              className="flex-1 py-3.5 rounded-full font-bold text-textMain bg-gray-100 hover:bg-gray-200 transition-colors"
+            >
+              {t.cloud.cancel}
+            </button>
+            <button
+              onClick={confirmDeleteItem}
+              className="flex-1 py-3.5 rounded-full font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30"
+            >
+              {t.cloud.confirmDelete}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -825,7 +876,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             <button
               onClick={async () => {
                 if (pendingFileUrl) {
-                  // NOTE: 閻楀牊娼堢涵顔款吇閸氬氦鐨熼悽銊ч兇缂佺喎绨查悽銊﹀ⅵ瀵偓閺傚洣娆?
+                  // NOTE: 用户同意后再打开目标文件
                   try {
                     await openWithSystemApp(pendingFileUrl);
                   } catch (error) {
