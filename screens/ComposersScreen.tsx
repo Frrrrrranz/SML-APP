@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { Capacitor } from '@capacitor/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Plus, Camera, Library, Loader2 } from 'lucide-react';
 import { Composer } from '../types';
@@ -7,7 +6,6 @@ import { Modal } from '../components/Modal';
 import { useStorage } from '../contexts/StorageContext';
 import { staggerContainer, listItem, fabAnimation } from '../utils/animations';
 import { useLanguage } from '../contexts/LanguageContext';
-import { getLocalFileUri } from '../services/local-file-storage';
 import { getComposerAvatarUrl } from '../utils/avatar';
 import { isElectron } from '../services/platform';
 
@@ -90,14 +88,8 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
         const avatarUrl = await storage.uploadAvatar(imageFile, created.id);
         const updated = await storage.dataApi.updateComposer(created.id, { image: avatarUrl });
 
-        let resolvedImage = updated.image;
-        if (resolvedImage && !resolvedImage.startsWith('http')) {
-          const fileUri = await getLocalFileUri(resolvedImage);
-          if (fileUri) resolvedImage = Capacitor.convertFileSrc(fileUri);
-        }
-
         if (onUpdateComposer) {
-          onUpdateComposer({ ...created, image: resolvedImage });
+          onUpdateComposer({ ...created, image: updated.image });
         }
       }
 

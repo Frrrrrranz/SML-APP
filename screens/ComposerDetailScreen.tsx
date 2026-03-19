@@ -1,8 +1,7 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Plus, Camera, FileText, Music, Check, Trash2, Edit2, PlayCircle, AlertCircle, Upload, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
-import { openWithSystemApp, getLocalFileUri } from '../services/local-file-storage';
-import { Capacitor } from '@capacitor/core';
+import { openWithSystemApp } from '../services/local-file-storage';
 import { ViewMode, Composer, Work, Recording } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -187,17 +186,10 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       // 写入数据库
       const updatedComposer = await storage.dataApi.updateComposer(composer.id, { image: avatarUrl });
 
-      // NOTE: 本地数据库可能保存相对路径，WebView 显示前需转换为可访问 URI
-      let resolvedImage = updatedComposer.image;
-      if (resolvedImage && !resolvedImage.startsWith('http')) {
-        const fileUri = await getLocalFileUri(resolvedImage);
-        if (fileUri) resolvedImage = Capacitor.convertFileSrc(fileUri);
-      }
-
       // 更新页面状态
       onUpdateComposer({
         ...composer,
-        image: resolvedImage
+        image: updatedComposer.image
       });
 
       setShowPortraitModal(false);
