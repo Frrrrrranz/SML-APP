@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ChevronLeft, Plus, Camera, FileText, Music, Check,
@@ -77,6 +77,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     const [workFormYear, setWorkFormYear] = useState('');
     const [workFormEdition, setWorkFormEdition] = useState('');
     const [workFormFiles, setWorkFormFiles] = useState<File[]>([]);
+    const [sheetPickMode, setSheetPickMode] = useState<'replace' | 'append'>('replace');
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -276,6 +277,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
         setWorkFormYear('');
         setWorkFormEdition('');
         setWorkFormFiles([]);
+        setSheetPickMode('replace');
         setShowWorkModal(true);
     };
 
@@ -286,7 +288,24 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
         setWorkFormYear(work.year);
         setWorkFormEdition(work.edition);
         setWorkFormFiles([]);
+        setSheetPickMode('replace');
         setShowWorkModal(true);
+    };
+
+    const handleWorkFilesSelected = (selectedFiles: File[], mode: 'replace' | 'append') => {
+        const nextFiles = mode === 'append' ? [...workFormFiles, ...selectedFiles] : selectedFiles;
+        const validationError = validateSheetUploadFiles(nextFiles);
+        if (validationError) {
+            alert(validationError);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+            return;
+        }
+        setWorkFormFiles(nextFiles);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     const moveWorkFormFile = (fromIndex: number, toIndex: number) => {
@@ -779,19 +798,14 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                         className="hidden"
                         onChange={(e) => {
                             const files = Array.from(e.target.files || []);
-                            const validationError = validateSheetUploadFiles(files);
-                            if (validationError) {
-                                alert(validationError);
-                                if (fileInputRef.current) {
-                                    fileInputRef.current.value = '';
-                                }
-                                return;
-                            }
-                            setWorkFormFiles(files);
+                            handleWorkFilesSelected(files, sheetPickMode);
                         }}
                     />
                     <div
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => {
+                            setSheetPickMode('replace');
+                            fileInputRef.current?.click();
+                        }}
                         className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-all mb-5 ${workFormFiles.length > 0 ? 'border-oldGold bg-oldGold/5' : 'border-gray-300 hover:border-oldGold/50'}`}
                     >
                         {workFormFiles.length > 0 ? (
@@ -810,15 +824,28 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400 mb-2">
                                     <Upload size={22} />
                                 </div>
-                                <p className="text-textMain font-semibold text-sm">Select PDF or images</p>
-                                <p className="text-textSub text-xs mt-0.5">Multiple images will be combined into one PDF</p>
+                                <p className="text-textMain font-semibold text-sm">{t.cloud.form.selectFile}</p>
+                                <p className="text-textSub text-xs mt-0.5">{t.cloud.form.sheetSelectHint}</p>
                             </>
                         )}
                     </div>
+                    <div className="mb-5 flex items-center justify-end">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSheetPickMode('append');
+                                fileInputRef.current?.click();
+                            }}
+                            className="rounded-full border border-oldGold/30 px-3 py-1.5 text-xs font-medium text-oldGold hover:bg-oldGold/10 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                            disabled={workFormFiles.length > 0 && (workFormFiles[0].type === 'application/pdf' || workFormFiles[0].name.toLowerCase().endsWith('.pdf'))}
+                        >
+                            {t.cloud.form.addMoreImages}
+                        </button>
+                    </div>
                     {workFormFiles.length > 1 && (
                         <div className="mb-5 rounded-xl border border-gray-200 bg-white/80 p-3">
-                            <p className="mb-2 text-xs font-semibold text-textSub">Page order (used for merge)</p>
-                            <div className="space-y-2">
+                            <p className="mb-2 text-xs font-semibold text-textSub">{t.cloud.form.sheetOrderHint}</p>
+                            <div className="max-h-48 overflow-y-auto pr-1 space-y-2">
                                 {workFormFiles.map((file, index) => (
                                     <div key={`${file.name}-${index}`} className="flex items-center gap-2 rounded-lg border border-gray-100 px-2 py-1.5">
                                         <span className="w-6 shrink-0 text-center text-xs font-bold text-oldGold">{index + 1}</span>
