@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Plus, Camera, FileText, Music, Check, Trash2, Edit2, PlayCircle, AlertCircle, Upload, Loader2 } from 'lucide-react';
+import { ChevronLeft, Plus, Camera, FileText, Music, Check, Trash2, Edit2, PlayCircle, AlertCircle, Upload, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import { openWithSystemApp, getLocalFileUri } from '../services/local-file-storage';
 import { Capacitor } from '@capacitor/core';
 import { ViewMode, Composer, Work, Recording } from '../types';
@@ -11,6 +11,8 @@ import { Modal } from '../components/Modal';
 import { fadeInUp, staggerContainer, listItemSlide, fabAnimation, tabContent } from '../utils/animations';
 import { getComposerAvatarUrl } from '../utils/avatar';
 import { isElectron } from '../services/platform';
+import { SHEET_UPLOAD_ACCEPT, getSheetSelectionHint, prepareSheetUploadFile, validateSheetUploadFiles } from '../utils/sheet-upload';
+import { formatWorkMetaForDisplay, getDefaultWorkEdition, getDefaultWorkYear } from '../utils/work-metadata';
 
 interface ComposerDetailScreenProps {
   composerId: string;
@@ -28,15 +30,15 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   onBack
 }) => {
   const { user: authUser, profile: authProfile } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { storage } = useStorage();
   const desktopMode = isElectron();
 
-  // 管理员权限判断：基于角色
+  // 绠＄悊鍛樻潈闄愬垽鏂細鍩轰簬瑙掕壊
   const isAdmin = authProfile?.role === 'admin';
 
   const [viewMode, setViewMode] = useState<ViewMode>('Sheet Music');
-  const [isAnimating, setIsAnimating] = useState(false); // 用于 Apple 风格滑块动画
+  const [isAnimating, setIsAnimating] = useState(false); // 鐢ㄤ簬 Apple 椋庢牸婊戝潡鍔ㄧ敾
   const [isEditing, setIsEditing] = useState(false);
 
   // Modal States
@@ -45,7 +47,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const [showPortraitModal, setShowPortraitModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
-  // NOTE: 非管理员点击文件时，先弹版权确认，确认后用系统应用打开
+  // NOTE: 闈炵鐞嗗憳鐐瑰嚮鏂囦欢鏃讹紝鍏堝脊鐗堟潈纭锛岀‘璁ゅ悗鐢ㄧ郴缁熷簲鐢ㄦ墦寮€
   const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
 
   // Work Form States
@@ -53,7 +55,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const [workFormTitle, setWorkFormTitle] = useState('');
   const [workFormYear, setWorkFormYear] = useState('');
   const [workFormEdition, setWorkFormEdition] = useState('');
-  const [workFormFile, setWorkFormFile] = useState<File | null>(null);
+  const [workFormFiles, setWorkFormFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -74,8 +76,8 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const composer = composers.find(c => c.id === composerId);
 
   /**
-   * 处理文件打开（用系统应用或版权确认后用系统应用）
-   * NOTE: 管理员直接打开，非管理员需先确认版权声明
+   * 澶勭悊鏂囦欢鎵撳紑锛堢敤绯荤粺搴旂敤鎴栫増鏉冪‘璁ゅ悗鐢ㄧ郴缁熷簲鐢級
+   * NOTE: 绠＄悊鍛樼洿鎺ユ墦寮€锛岄潪绠＄悊鍛橀渶鍏堢‘璁ょ増鏉冨０鏄?
    */
   const handleOpenFile = async (fileUrl: string) => {
     if (isAdmin) {
@@ -83,7 +85,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         await openWithSystemApp(fileUrl);
       } catch (error) {
         console.error('Failed to open file with system app:', error);
-        alert('无法打开文件，请确认文件是否存在');
+        alert('鏃犳硶鎵撳紑鏂囦欢锛岃纭鏂囦欢鏄惁瀛樺湪');
       }
     } else {
       setPendingFileUrl(fileUrl);
@@ -109,7 +111,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
   if (!composer) return <div className="p-8 text-center text-gray-500">Composer not found</div>;
 
-  // NOTE: 居中展示首字母头像，与云端保持一致。若存在自定义头像 URL 则展示图片，否则展示首字母。
+  // NOTE: 灞呬腑灞曠ず棣栧瓧姣嶅ご鍍忥紝涓庝簯绔繚鎸佷竴鑷淬€傝嫢瀛樺湪鑷畾涔夊ご鍍?URL 鍒欏睍绀哄浘鐗囷紝鍚﹀垯灞曠ず棣栧瓧姣嶃€?
   const hasCustomAvatar = !!(composer.image && !composer.image.includes('ui-avatars.com') && composer.image !== '/composer-placeholder.png');
 
   // --- Handlers: General ---
@@ -120,7 +122,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const handleUpdateInfo = async (field: 'name' | 'period', value: string) => {
     try {
       const updatedComposer = await storage.dataApi.updateComposer(composer.id, { [field]: value });
-      // NOTE: API 返回的 updatedComposer 不包含 works/recordings，需要保留现有数据
+      // NOTE: API 杩斿洖鐨?updatedComposer 涓嶅寘鍚?works/recordings锛岄渶瑕佷繚鐣欑幇鏈夋暟鎹?
       onUpdateComposer({
         ...updatedComposer,
         works: composer.works || [],
@@ -132,7 +134,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   };
 
   const confirmDeleteComposer = async () => {
-    // NOTE: 所有用户均可删除作曲家（本地数据）
+    // NOTE: 鎵€鏈夌敤鎴峰潎鍙垹闄や綔鏇插锛堟湰鍦版暟鎹級
     try {
       await storage.dataApi.deleteComposer(composer.id);
       onDeleteComposer(composer.id);
@@ -146,39 +148,39 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 验证文件类型
+    // 楠岃瘉鏂囦欢绫诲瀷
     if (!file.type.startsWith('image/')) {
-      alert('请选择图片文件');
+      alert('璇烽€夋嫨鍥剧墖鏂囦欢');
       return;
     }
-    // 验证文件大小 (最大 5MB)
+    // 楠岃瘉鏂囦欢澶у皬 (鏈€澶?5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('图片大小不能超过 5MB');
+      alert('鍥剧墖澶у皬涓嶈兘瓒呰繃 5MB');
       return;
     }
 
     setIsAvatarUploading(true);
     try {
-      // 删除旧头像（如果是自定义上传的）
+      // 鍒犻櫎鏃уご鍍忥紙濡傛灉鏄嚜瀹氫箟涓婁紶鐨勶級
       if (composer.image) {
         await storage.deleteAvatar(composer.image);
       }
 
-      // 上传新头像
+      // 涓婁紶鏂板ご鍍?
       const avatarUrl = await storage.uploadAvatar(file, composer.id);
 
-      // 更新数据库
+      // 鏇存柊鏁版嵁搴?
       const updatedComposer = await storage.dataApi.updateComposer(composer.id, { image: avatarUrl });
 
-      // NOTE: dbUpdateComposer 返回的是 SQLite 中的相对路径（如 SML/avatars/xxx.jpg），
-      // 需要转换为 WebView 可访问的 URI 才能在 <img> 中显示
+      // NOTE: dbUpdateComposer 杩斿洖鐨勬槸 SQLite 涓殑鐩稿璺緞锛堝 SML/avatars/xxx.jpg锛夛紝
+      // 闇€瑕佽浆鎹负 WebView 鍙闂殑 URI 鎵嶈兘鍦?<img> 涓樉绀?
       let resolvedImage = updatedComposer.image;
       if (resolvedImage && !resolvedImage.startsWith('http')) {
         const fileUri = await getLocalFileUri(resolvedImage);
         if (fileUri) resolvedImage = Capacitor.convertFileSrc(fileUri);
       }
 
-      // 更新本地状态
+      // 鏇存柊鏈湴鐘舵€?
       onUpdateComposer({
         ...composer,
         image: resolvedImage
@@ -187,10 +189,10 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       setShowPortraitModal(false);
     } catch (error) {
       console.error('Failed to upload avatar:', error);
-      alert('头像上传失败，请重试');
+      alert('澶村儚涓婁紶澶辫触锛岃閲嶈瘯');
     } finally {
       setIsAvatarUploading(false);
-      // 重置 input 以便可以重复选择同一文件
+      // 閲嶇疆 input 浠ヤ究鍙互閲嶅閫夋嫨鍚屼竴鏂囦欢
       if (avatarInputRef.current) {
         avatarInputRef.current.value = '';
       }
@@ -200,12 +202,12 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   const handleRestoreDefaultAvatar = async () => {
     setIsAvatarUploading(true);
     try {
-      // 删除自定义头像（如果有）
+      // 鍒犻櫎鑷畾涔夊ご鍍忥紙濡傛灉鏈夛級
       if (composer.image) {
         await storage.deleteAvatar(composer.image);
       }
 
-      // NOTE: 使用固定占位符图片，避免基于名字的头像在改名后不同步
+      // NOTE: 浣跨敤鍥哄畾鍗犱綅绗﹀浘鐗囷紝閬垮厤鍩轰簬鍚嶅瓧鐨勫ご鍍忓湪鏀瑰悕鍚庝笉鍚屾
       const defaultImage = '/composer-placeholder.png';
       const updatedComposer = await storage.dataApi.updateComposer(composer.id, { image: defaultImage });
 
@@ -217,7 +219,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       setShowPortraitModal(false);
     } catch (error) {
       console.error('Failed to restore default avatar:', error);
-      alert('恢复默认头像失败，请重试');
+      alert('鎭㈠榛樿澶村儚澶辫触锛岃閲嶈瘯');
     } finally {
       setIsAvatarUploading(false);
     }
@@ -226,7 +228,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   // --- Handlers: Works (Sheet Music) ---
   const handleDeleteWork = async (workId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // NOTE: 所有用户均可在本地删除乐谱，不影响云端数据
+    // NOTE: 鎵€鏈夌敤鎴峰潎鍙湪鏈湴鍒犻櫎涔愯氨锛屼笉褰卞搷浜戠鏁版嵁
     if (window.confirm(t.cloud.deleteWorkConfirm)) {
       try {
         await storage.dataApi.deleteWork(workId);
@@ -246,6 +248,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     setWorkFormTitle('');
     setWorkFormYear('');
     setWorkFormEdition('');
+    setWorkFormFiles([]);
     setShowWorkModal(true);
   };
 
@@ -255,7 +258,18 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     setWorkFormTitle(work.title);
     setWorkFormYear(work.year);
     setWorkFormEdition(work.edition);
+    setWorkFormFiles([]);
     setShowWorkModal(true);
+  };
+
+  const moveWorkFormFile = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= workFormFiles.length) return;
+    setWorkFormFiles((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
   };
 
   const handleSaveWork = async () => {
@@ -267,13 +281,14 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         // Update existing work
         const updatedWork = await storage.dataApi.updateWork(editingWorkId, {
           title: workFormTitle,
-          year: workFormYear || 'Unknown',
-          edition: workFormEdition || 'Standard Edition'
+          year: workFormYear || getDefaultWorkYear(language),
+          edition: workFormEdition || getDefaultWorkEdition(language)
         });
 
-        // 如果选择了新文件，上传并更新
-        if (workFormFile) {
-          const fileUrl = await storage.uploadSheetMusic(workFormFile, editingWorkId);
+        // 濡傛灉閫夋嫨浜嗘柊鏂囦欢锛屼笂浼犲苟鏇存柊
+        if (workFormFiles.length > 0) {
+          const uploadFile = await prepareSheetUploadFile(workFormFiles, editingWorkId, workFormTitle);
+          const fileUrl = await storage.uploadSheetMusic(uploadFile, editingWorkId);
           const workWithFile = await storage.dataApi.uploadWorkFile(editingWorkId, fileUrl);
           updatedWork.fileUrl = workWithFile.fileUrl;
         }
@@ -290,14 +305,15 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         const newWorkPayload = {
           composer_id: composer.id,
           title: workFormTitle,
-          year: workFormYear || 'Unknown',
-          edition: workFormEdition || 'Standard Edition'
+          year: workFormYear || getDefaultWorkYear(language),
+          edition: workFormEdition || getDefaultWorkEdition(language)
         };
         const newWork = await storage.dataApi.createWork(newWorkPayload);
 
-        // 如果选择了文件，上传并更新
-        if (workFormFile) {
-          const fileUrl = await storage.uploadSheetMusic(workFormFile, newWork.id);
+        // 濡傛灉閫夋嫨浜嗘枃浠讹紝涓婁紶骞舵洿鏂?
+        if (workFormFiles.length > 0) {
+          const uploadFile = await prepareSheetUploadFile(workFormFiles, newWork.id, workFormTitle);
+          const fileUrl = await storage.uploadSheetMusic(uploadFile, newWork.id);
           const workWithFile = await storage.dataApi.uploadWorkFile(newWork.id, fileUrl);
           newWork.fileUrl = workWithFile.fileUrl;
         }
@@ -314,11 +330,11 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       setWorkFormTitle('');
       setWorkFormYear('');
       setWorkFormEdition('');
-      setWorkFormFile(null);
+      setWorkFormFiles([]);
       setShowWorkModal(false);
     } catch (error) {
       console.error('Failed to save work:', error);
-      alert('保存失败，请检查文件格式或网络连接');
+      alert('淇濆瓨澶辫触锛岃妫€鏌ユ枃浠舵牸寮忔垨缃戠粶杩炴帴');
     } finally {
       setIsUploading(false);
     }
@@ -327,7 +343,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
   // --- Handlers: Recordings ---
   const handleDeleteRecording = async (recId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // NOTE: 所有用户均可在本地删除录音，不影响云端数据
+    // NOTE: 鎵€鏈夌敤鎴峰潎鍙湪鏈湴鍒犻櫎褰曢煶锛屼笉褰卞搷浜戠鏁版嵁
     if (window.confirm(t.cloud.deleteRecordingConfirm)) {
       try {
         await storage.dataApi.deleteRecording(recId);
@@ -376,7 +392,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           duration: recFormDuration || '0:00'
         });
 
-        // 如果选择了新文件，上传并更新
+        // 濡傛灉閫夋嫨浜嗘柊鏂囦欢锛屼笂浼犲苟鏇存柊
         if (recFormFile) {
           const fileUrl = await storage.uploadRecordingFile(recFormFile, editingRecordingId);
           const recWithFile = await storage.dataApi.uploadRecordingFileUrl(editingRecordingId, fileUrl);
@@ -398,7 +414,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         };
         const newRec = await storage.dataApi.createRecording(newRecPayload);
 
-        // 如果选择了文件，上传并更新
+        // 濡傛灉閫夋嫨浜嗘枃浠讹紝涓婁紶骞舵洿鏂?
         if (recFormFile) {
           const fileUrl = await storage.uploadRecordingFile(recFormFile, newRec.id);
           const recWithFile = await storage.dataApi.uploadRecordingFileUrl(newRec.id, fileUrl);
@@ -422,7 +438,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       setShowRecordingModal(false);
     } catch (error) {
       console.error('Failed to save recording:', error);
-      alert('保存失败，请检查文件格式或网络连接');
+      alert('淇濆瓨澶辫触锛岃妫€鏌ユ枃浠舵牸寮忔垨缃戠粶杩炴帴');
     } finally {
       setIsRecUploading(false);
     }
@@ -430,7 +446,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-x-hidden">
-      {/* Top Nav - 沉浸式适配 */}
+      {/* Top Nav - 娌夋蹈寮忛€傞厤 */}
       <div className={`sticky top-0 z-20 flex items-center justify-between ${desktopMode ? 'px-5 pb-2.5 pt-3' : 'px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]'} bg-background/60 backdrop-blur-2xl backdrop-saturate-150 transition-all duration-300`}>
         <button
           onClick={onBack}
@@ -450,7 +466,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
       </div>
 
       <div className="flex-1">
-        {/* Hero Section - 带 fadeInUp 进入动画 */}
+        {/* Hero Section - 甯?fadeInUp 杩涘叆鍔ㄧ敾 */}
         <motion.div
           className={`flex flex-col items-center ${desktopMode ? 'px-5 pt-1 pb-6' : 'px-6 pt-2 pb-8'}`}
           variants={fadeInUp}
@@ -462,13 +478,13 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             onClick={() => isEditing ? setShowPortraitModal(true) : null}
           >
             <div className={`relative ${desktopMode ? 'h-36 w-36' : 'h-44 w-44'} rounded-full shadow-lg overflow-hidden border-4 border-white bg-gray-200 ring-1 ring-black/5`}>
-              {/* NOTE: 与设置页一致，统一使用 ui-avatars.com 生成首字母头像 */}
+              {/* NOTE: 涓庤缃〉涓€鑷达紝缁熶竴浣跨敤 ui-avatars.com 鐢熸垚棣栧瓧姣嶅ご鍍?*/}
               <img
                 src={hasCustomAvatar ? composer.image! : getComposerAvatarUrl(composer.name)}
                 alt={composer.name}
                 className="w-full h-full object-cover"
               />
-              {/* NOTE: 编辑模式下叠加半透明黑色遮罩，保留头像内容可见 */}
+              {/* NOTE: 缂栬緫妯″紡涓嬪彔鍔犲崐閫忔槑榛戣壊閬僵锛屼繚鐣欏ご鍍忓唴瀹瑰彲瑙?*/}
               {isEditing && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center animate-in fade-in duration-200">
                   <Camera className="text-white drop-shadow-md" size={32} />
@@ -477,7 +493,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             </div>
           </div>
 
-          {/* NOTE: min-h 保证编辑态与非编辑态等高，防止切换时页面高度跳变 */}
+          {/* NOTE: min-h 淇濊瘉缂栬緫鎬佷笌闈炵紪杈戞€佺瓑楂橈紝闃叉鍒囨崲鏃堕〉闈㈤珮搴﹁烦鍙?*/}
           <div className={`text-center w-full ${desktopMode ? 'max-w-sm min-h-[68px]' : 'max-w-xs min-h-[80px]'} flex flex-col items-center justify-center`}>
             {isEditing ? (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-3 w-full">
@@ -509,13 +525,13 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           </div>
         </motion.div>
 
-        {/* Segmented Control - Apple Music 风格毛玻璃滑动 Tab */}
+        {/* Segmented Control - Apple Music 椋庢牸姣涚幓鐠冩粦鍔?Tab */}
         <div className={`${desktopMode ? 'px-5 pb-5' : 'px-6 pb-6'} sticky top-[64px] z-10 bg-background/70 backdrop-blur-2xl transition-all duration-200`}>
           <div className={`relative flex ${desktopMode ? 'h-10' : 'h-11'} ${desktopMode ? 'w-full max-w-[760px] mx-auto' : 'w-full'} items-center rounded-xl ${desktopMode ? 'bg-white/18 backdrop-blur-2xl backdrop-saturate-150' : 'bg-black/[0.06] backdrop-blur-xl'} ${desktopMode ? 'p-[3px]' : 'p-[3px]'} ${desktopMode ? 'border border-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_10px_30px_rgba(0,0,0,0.07)]' : 'border border-white/30 shadow-sm shadow-black/5'} ${desktopMode ? 'overflow-visible' : 'overflow-hidden'}`}>
             {desktopMode && (
               <div className="pointer-events-none absolute inset-[1px] rounded-[10px] bg-gradient-to-b from-white/35 via-white/8 to-transparent" />
             )}
-            {/* 滑动指示器 - Apple Music 毛玻璃风格 */}
+            {/* 婊戝姩鎸囩ず鍣?- Apple Music 姣涚幓鐠冮鏍?*/}
             <div
               className={`
                 absolute rounded-[10px]
@@ -538,16 +554,16 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                   : (desktopMode ? 'calc(50% + 5px)' : 'calc(50%)'),
               }}
             />
-            {/* Tab 按钮 */}
+            {/* Tab 鎸夐挳 */}
             {(['Sheet Music', 'Recordings'] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => {
                   if (viewMode !== mode) {
-                    // 触发动画：先放大
+                    // 瑙﹀彂鍔ㄧ敾锛氬厛鏀惧ぇ
                     setIsAnimating(true);
                     setViewMode(mode);
-                    // 动画完成后恢复
+                    // 鍔ㄧ敾瀹屾垚鍚庢仮澶?
                     setTimeout(() => setIsAnimating(false), desktopMode ? 280 : 350);
                   }
                 }}
@@ -583,7 +599,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                   <div
                     key={work.id}
                     onClick={async () => {
-                      // NOTE: 非编辑模式下，点击条目用系统应用打开 PDF
+                      // NOTE: 闈炵紪杈戞ā寮忎笅锛岀偣鍑绘潯鐩敤绯荤粺搴旂敤鎵撳紑 PDF
                       if (!isEditing && work.fileUrl) {
                         await handleOpenFile(work.fileUrl);
                       }
@@ -591,7 +607,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                     className={`group flex items-center gap-4 ${desktopMode ? 'px-5 py-3.5' : 'px-6 py-4'} hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative overflow-hidden ${!isEditing && work.fileUrl ? 'cursor-pointer' : ''
                       }`}
                   >
-                    {/* NOTE: 删除按钮仅在编辑模式且为管理员时显示 */}
+                    {/* NOTE: 鍒犻櫎鎸夐挳浠呭湪缂栬緫妯″紡涓斾负绠＄悊鍛樻椂鏄剧ず */}
                     {isEditing ? (
                       <button
                         onClick={(e) => handleDeleteWork(work.id, e)}
@@ -610,11 +626,11 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                         {work.title}
                       </p>
                       <p className="text-textSub text-sm leading-normal truncate font-medium mt-0.5">
-                        {work.edition} · {work.year}
+                        {formatWorkMetaForDisplay(work.edition, work.year, language)}
                       </p>
                     </div>
 
-                    {/* 只有编辑模式下显示编辑按钮 */}
+                    {/* 鍙湁缂栬緫妯″紡涓嬫樉绀虹紪杈戞寜閽?*/}
                     {isEditing && (
                       <div className="shrink-0">
                         <button
@@ -648,7 +664,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                   <div
                     key={recording.id}
                     onClick={async () => {
-                      // NOTE: 非编辑模式下，点击条目用系统应用播放音频
+                      // NOTE: 闈炵紪杈戞ā寮忎笅锛岀偣鍑绘潯鐩敤绯荤粺搴旂敤鎾斁闊抽
                       if (!isEditing && recording.fileUrl) {
                         await handleOpenFile(recording.fileUrl);
                       }
@@ -656,7 +672,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                     className={`group flex items-center gap-4 ${desktopMode ? 'px-5 py-3.5' : 'px-6 py-4'} hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative ${!isEditing && recording.fileUrl ? 'cursor-pointer' : ''
                       }`}
                   >
-                    {/* NOTE: 录音不允许删除，始终显示播放图标 */}
+                    {/* NOTE: 褰曢煶涓嶅厑璁稿垹闄わ紝濮嬬粓鏄剧ず鎾斁鍥炬爣 */}
                     <div className={`shrink-0 opacity-80 group-hover:opacity-100 transition-opacity ${recording.fileUrl ? 'text-oldGold' : 'text-gray-400'}`}>
                       <PlayCircle size={28} strokeWidth={1.5} />
                     </div>
@@ -666,7 +682,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                         {recording.title}
                       </p>
                       <p className="text-textSub text-sm leading-normal truncate font-medium mt-0.5">
-                        {recording.performer} · {recording.year}
+                        {recording.performer} / {recording.year}
                       </p>
                     </div>
 
@@ -697,7 +713,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           </AnimatePresence>
         </div>
 
-        {/* Delete Composer Button - 编辑模式下显示 */}
+        {/* Delete Composer Button - 缂栬緫妯″紡涓嬫樉绀?*/}
         {isEditing ? (
           <div className="px-6 py-8 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <button
@@ -717,12 +733,12 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
           style={{ left: desktopMode ? '220px' : '0', right: '0' }}
         >
           <p className="text-[11px] leading-relaxed text-textSub/40 font-sans mx-auto max-w-[320px]">
-            本站乐谱由用户上传，仅供个人学习、练习与研究使用。如有侵权，请联系管理员处理。部分乐谱来源于第三方网站，版权归原作者所有。
+            {t.common.copyright.notice}
           </p>
         </div>
       )}
 
-      {/* FAB - 带弹入动画 */}
+      {/* FAB - 甯﹀脊鍏ュ姩鐢?*/}
       <motion.button
         onClick={viewMode === 'Sheet Music' ? openAddWorkModal : openAddRecordingModal}
         className={`fixed size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20 ${desktopMode ? 'right-8 bottom-8' : 'bottom-24 left-6'}`}
@@ -790,12 +806,12 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
             <button
               onClick={async () => {
                 if (pendingFileUrl) {
-                  // NOTE: 版权确认后调用系统应用打开文件
+                  // NOTE: 鐗堟潈纭鍚庤皟鐢ㄧ郴缁熷簲鐢ㄦ墦寮€鏂囦欢
                   try {
                     await openWithSystemApp(pendingFileUrl);
                   } catch (error) {
                     console.error('Failed to open file:', error);
-                    alert('无法打开文件，请确认文件是否存在');
+                    alert('鏃犳硶鎵撳紑鏂囦欢锛岃纭鏂囦欢鏄惁瀛樺湪');
                   }
                   setShowCopyrightModal(false);
                   setPendingFileUrl(null);
@@ -826,41 +842,86 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         variant="center"
       >
         <div className="flex flex-col font-sans">
-          <h3 className="text-xl font-bold text-textMain mb-5 font-serif text-center">{editingWorkId ? '编辑乐谱' : '添加乐谱'}</h3>
+          <h3 className="text-xl font-bold text-textMain mb-5 font-serif text-center">{editingWorkId ? '缂栬緫涔愯氨' : '娣诲姞涔愯氨'}</h3>
 
-          {/* PDF Upload */}
+          {/* Sheet Upload (PDF or Images) */}
           <input
             type="file"
             ref={fileInputRef}
-            accept=".pdf"
+            accept={SHEET_UPLOAD_ACCEPT}
+            multiple
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setWorkFormFile(file);
+              const files = Array.from(e.target.files || []);
+              const validationError = validateSheetUploadFiles(files);
+              if (validationError) {
+                alert(validationError);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = '';
+                }
+                return;
+              }
+              setWorkFormFiles(files);
             }}
           />
           <div
             onClick={() => fileInputRef.current?.click()}
-            className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-all mb-5 ${workFormFile ? 'border-oldGold bg-oldGold/5' : 'border-gray-300 hover:border-oldGold/50'}`}
+            className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-all mb-5 ${workFormFiles.length > 0 ? 'border-oldGold bg-oldGold/5' : 'border-gray-300 hover:border-oldGold/50'}`}
           >
-            {workFormFile ? (
+            {workFormFiles.length > 0 ? (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-oldGold/10 text-oldGold mb-2">
                   <Check size={22} />
                 </div>
-                <p className="text-textMain font-semibold text-sm text-center truncate max-w-full">{workFormFile.name}</p>
+                <p className="text-textMain font-semibold text-sm text-center truncate max-w-full">
+                  {workFormFiles.length === 1 ? workFormFiles[0].name : `已选择 ${workFormFiles.length} 个文件`}
+                </p>
                 <p className="text-textSub text-xs mt-0.5">点击更换文件</p>
+                <p className="text-textSub text-xs mt-0.5">{getSheetSelectionHint(workFormFiles)}</p>
               </>
             ) : (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400 mb-2">
                   <Upload size={22} />
                 </div>
-                <p className="text-textMain font-semibold text-sm">选择 PDF 文件</p>
+                <p className="text-textMain font-semibold text-sm">选择 PDF 或图片</p>
+                <p className="text-textSub text-xs mt-0.5">图片可多选，上传后自动合成 PDF</p>
               </>
             )}
           </div>
-
+          {workFormFiles.length > 1 && (
+            <div className="mb-5 rounded-xl border border-gray-200 bg-white/80 p-3">
+              <p className="mb-2 text-xs font-semibold text-textSub">页序确认（将按以下顺序合成）</p>
+              <div className="space-y-2">
+                {workFormFiles.map((file, index) => (
+                  <div key={`${file.name}-${index}`} className="flex items-center gap-2 rounded-lg border border-gray-100 px-2 py-1.5">
+                    <span className="w-6 shrink-0 text-center text-xs font-bold text-oldGold">{index + 1}</span>
+                    <span className="flex-1 truncate text-xs text-textMain">{file.name}</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveWorkFormFile(index, index - 1)}
+                        disabled={index === 0}
+                        className="rounded p-1 text-textSub hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+                        aria-label="Move up"
+                      >
+                        <ChevronUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveWorkFormFile(index, index + 1)}
+                        disabled={index === workFormFiles.length - 1}
+                        className="rounded p-1 text-textSub hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+                        aria-label="Move down"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {/* Form Fields */}
           <div className="space-y-4 mb-6">
             <div>
@@ -922,7 +983,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         variant="center"
       >
         <div className="flex flex-col font-sans">
-          <h3 className="text-xl font-bold text-textMain mb-5 font-serif text-center">{editingRecordingId ? '编辑录音' : '添加录音'}</h3>
+          <h3 className="text-xl font-bold text-textMain mb-5 font-serif text-center">{editingRecordingId ? '缂栬緫褰曢煶' : '娣诲姞褰曢煶'}</h3>
 
           {/* Audio Upload */}
           <input
@@ -945,14 +1006,14 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                   <Check size={22} />
                 </div>
                 <p className="text-textMain font-semibold text-sm text-center truncate max-w-full">{recFormFile.name}</p>
-                <p className="text-textSub text-xs mt-0.5">点击更换文件</p>
+                <p className="text-textSub text-xs mt-0.5">鐐瑰嚮鏇存崲鏂囦欢</p>
               </>
             ) : (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400 mb-2">
                   <Music size={22} />
                 </div>
-                <p className="text-textMain font-semibold text-sm">选择音频文件</p>
+                <p className="text-textMain font-semibold text-sm">閫夋嫨闊抽鏂囦欢</p>
                 <p className="text-textSub text-xs mt-0.5">MP3, WAV, FLAC, MP4</p>
               </>
             )}
@@ -1092,3 +1153,4 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
     </div>
   );
 };
+

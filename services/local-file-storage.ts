@@ -1,5 +1,6 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { FileOpener } from '@capawesome-team/capacitor-file-opener';
+import { Capacitor } from '@capacitor/core';
 import { isElectron } from './platform';
 
 /**
@@ -228,6 +229,8 @@ const fileToBase64 = (file: File): Promise<string> => {
 const getMimeType = (ext: string): string => {
     const mimeMap: Record<string, string> = {
         pdf: 'application/pdf',
+        html: 'text/html',
+        htm: 'text/html',
         mp3: 'audio/mpeg',
         wav: 'audio/wav',
         mp4: 'video/mp4',
@@ -265,6 +268,14 @@ export const openWithSystemApp = async (filePath: string): Promise<void> => {
 
     // Electron 分支：通过 IPC 调用 shell.openPath
     if (isElectron()) {
+        const ext = filePath.split('.').pop()?.toLowerCase() || '';
+        if (ext === 'html' || ext === 'htm') {
+            const htmlUri = await getLocalFileUri(filePath);
+            if (htmlUri) {
+                window.open(htmlUri, '_blank');
+                return;
+            }
+        }
         console.log('[openWithSystemApp] Opening via Electron IPC');
         await window.electronAPI!.openFile(filePath);
         return;
@@ -279,6 +290,11 @@ export const openWithSystemApp = async (filePath: string): Promise<void> => {
     console.log('[openWithSystemApp] File URI:', fileUri);
 
     const ext = filePath.split('.').pop()?.toLowerCase() || '';
+    if (ext === 'html' || ext === 'htm') {
+        const webViewUrl = Capacitor.convertFileSrc(fileUri);
+        window.open(webViewUrl, '_blank');
+        return;
+    }
     const mimeType = getMimeType(ext);
     console.log('[openWithSystemApp] MIME type:', mimeType);
 

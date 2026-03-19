@@ -9,6 +9,7 @@ import { Composer } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../components/Modal';
 import { getComposerAvatarUrl } from '../utils/avatar';
+import { isElectron } from '../services/platform';
 
 /**
  * 云端资源库屏幕
@@ -20,6 +21,7 @@ export const CloudLibraryScreen: React.FC = () => {
     const { t } = useLanguage();
     const { profile } = useAuth();
     const navigate = useNavigate();
+    const desktopMode = isElectron();
 
     const isAdmin = profile?.role === 'admin';
 
@@ -319,7 +321,7 @@ export const CloudLibraryScreen: React.FC = () => {
             {isAdmin && (
                 <motion.button
                     onClick={() => setShowAddModal(true)}
-                    className="fixed bottom-24 left-6 size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20"
+                    className={`fixed size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-40 ring-2 ring-white/20 ${desktopMode ? 'right-8 bottom-8' : 'bottom-24 left-6'}`}
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.3, type: 'spring', stiffness: 400, damping: 20 }}

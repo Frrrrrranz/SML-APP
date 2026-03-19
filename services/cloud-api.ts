@@ -487,6 +487,8 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 const getMimeType = (ext: string): string => {
     const mimeMap: Record<string, string> = {
         pdf: 'application/pdf',
+        html: 'text/html',
+        htm: 'text/html',
         jpg: 'image/jpeg',
         jpeg: 'image/jpeg',
         png: 'image/png',

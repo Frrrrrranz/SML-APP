@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ChevronLeft, Plus, Camera, FileText, Music, Check,
-    Trash2, Edit2, PlayCircle, AlertCircle, Upload, Loader2
+    Trash2, Edit2, PlayCircle, AlertCircle, Upload, Loader2, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { ViewMode, Composer, Work, Recording } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -11,6 +11,8 @@ import { Modal } from '../components/Modal';
 import { fadeInUp, staggerContainer, listItemSlide, fabAnimation, tabContent } from '../utils/animations';
 import { getComposerAvatarUrl } from '../utils/avatar';
 import { isElectron } from '../services/platform';
+import { SHEET_UPLOAD_ACCEPT, getSheetSelectionHint, prepareSheetUploadFile, validateSheetUploadFiles } from '../utils/sheet-upload';
+import { formatWorkMetaForDisplay, getDefaultWorkEdition, getDefaultWorkYear } from '../utils/work-metadata';
 import {
     getCloudComposer,
     cloudCreateWork,
@@ -35,19 +37,19 @@ interface CloudComposerDetailScreenProps {
 }
 
 /**
- * 云端作曲家详情编辑页
- * NOTE: 仅 admin 可访问。直接操作 Supabase 云端数据，与本地 ComposerDetailScreen 对称
+ * 浜戠浣滄洸瀹惰鎯呯紪杈戦〉
+ * NOTE: 浠?admin 鍙闂€傜洿鎺ユ搷浣?Supabase 浜戠鏁版嵁锛屼笌鏈湴 ComposerDetailScreen 瀵圭О
  */
 export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps> = ({
     composerId,
     onBack,
 }) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const { profile } = useAuth();
     const isAdmin = profile?.role === 'admin';
     const desktopMode = isElectron();
 
-    // 作曲家数据
+    // 浣滄洸瀹舵暟鎹?
     const [composer, setComposer] = useState<Composer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     const [isAnimating, setIsAnimating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
-    // 编辑模式下的本地输入状态（避免每次按键都调用 API）
+    // 缂栬緫妯″紡涓嬬殑鏈湴杈撳叆鐘舵€侊紙閬垮厤姣忔鎸夐敭閮借皟鐢?API锛?
     const [editName, setEditName] = useState('');
     const [editPeriod, setEditPeriod] = useState('');
 
@@ -66,7 +68,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     const [showPortraitModal, setShowPortraitModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCopyrightModal, setShowCopyrightModal] = useState(false);
-    // NOTE: 非 admin 点击文件时先弹版权确认，确认后再打开文件
+    // NOTE: 闈?admin 鐐瑰嚮鏂囦欢鏃跺厛寮圭増鏉冪‘璁わ紝纭鍚庡啀鎵撳紑鏂囦欢
     const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
 
     // Work Form States
@@ -74,7 +76,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     const [workFormTitle, setWorkFormTitle] = useState('');
     const [workFormYear, setWorkFormYear] = useState('');
     const [workFormEdition, setWorkFormEdition] = useState('');
-    const [workFormFile, setWorkFormFile] = useState<File | null>(null);
+    const [workFormFiles, setWorkFormFiles] = useState<File[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,7 +94,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     const [isRecUploading, setIsRecUploading] = useState(false);
     const recFileInputRef = useRef<HTMLInputElement>(null);
 
-    // 加载云端作曲家详情
+    // 鍔犺浇浜戠浣滄洸瀹惰鎯?
     useEffect(() => {
         window.scrollTo(0, 0);
         const loadComposer = async () => {
@@ -111,7 +113,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
         loadComposer();
     }, [composerId]);
 
-    // --- 加载状态 ---
+    // --- 鍔犺浇鐘舵€?---
     if (isLoading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -140,8 +142,8 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
 
     // --- Handlers: File Open ---
     /**
-     * 处理文件打开：admin 直接打开，非 admin 先弹版权确认
-     * NOTE: 云端文件通过 window.open 在新标签页打开，无需系统应用
+     * 澶勭悊鏂囦欢鎵撳紑锛歛dmin 鐩存帴鎵撳紑锛岄潪 admin 鍏堝脊鐗堟潈纭
+     * NOTE: 浜戠鏂囦欢閫氳繃 window.open 鍦ㄦ柊鏍囩椤垫墦寮€锛屾棤闇€绯荤粺搴旂敤
      */
     const handleOpenFile = (fileUrl: string) => {
         if (isAdmin) {
@@ -155,18 +157,18 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
     // --- Handlers: General ---
     const handleToggleEdit = () => {
         if (!isEditing && composer) {
-            // 进入编辑模式：初始化本地输入状态
+            // 杩涘叆缂栬緫妯″紡锛氬垵濮嬪寲鏈湴杈撳叆鐘舵€?
             setEditName(composer.name);
             setEditPeriod(composer.period);
         }
         if (isEditing && composer) {
-            // 退出编辑模式：保存未提交的修改
+            // 閫€鍑虹紪杈戞ā寮忥細淇濆瓨鏈彁浜ょ殑淇敼
             saveInfoIfChanged();
         }
         setIsEditing(!isEditing);
     };
 
-    // NOTE: 仅在失焦或退出编辑时调用 API，避免每次按键都发请求
+    // NOTE: 浠呭湪澶辩劍鎴栭€€鍑虹紪杈戞椂璋冪敤 API锛岄伩鍏嶆瘡娆℃寜閿兘鍙戣姹?
     const saveInfoIfChanged = async () => {
         if (!composer) return;
         const updates: Record<string, string> = {};
@@ -205,15 +207,15 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
 
         setIsAvatarUploading(true);
         try {
-            // 删除旧头像
+            // 鍒犻櫎鏃уご鍍?
             if (composer.image) {
                 await cloudDeleteAvatar(composer.image);
             }
 
-            // 上传新头像到 Supabase Storage
+            // 涓婁紶鏂板ご鍍忓埌 Supabase Storage
             const avatarUrl = await cloudUploadAvatar(file, composer.id);
 
-            // 更新数据库
+            // 鏇存柊鏁版嵁搴?
             const updated = await cloudUpdateComposer(composer.id, { image: avatarUrl });
             setComposer({
                 ...composer,
@@ -236,7 +238,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
             if (composer.image) {
                 await cloudDeleteAvatar(composer.image);
             }
-            // NOTE: 恢复默认头像存空字符串，使用 getComposerAvatarUrl fallback
+            // NOTE: 鎭㈠榛樿澶村儚瀛樼┖瀛楃涓诧紝浣跨敤 getComposerAvatarUrl fallback
             const updated = await cloudUpdateComposer(composer.id, { image: '' });
             setComposer({
                 ...composer,
@@ -273,7 +275,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
         setWorkFormTitle('');
         setWorkFormYear('');
         setWorkFormEdition('');
-        setWorkFormFile(null);
+        setWorkFormFiles([]);
         setShowWorkModal(true);
     };
 
@@ -283,8 +285,18 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
         setWorkFormTitle(work.title);
         setWorkFormYear(work.year);
         setWorkFormEdition(work.edition);
-        setWorkFormFile(null);
+        setWorkFormFiles([]);
         setShowWorkModal(true);
+    };
+
+    const moveWorkFormFile = (fromIndex: number, toIndex: number) => {
+        if (toIndex < 0 || toIndex >= workFormFiles.length) return;
+        setWorkFormFiles((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIndex, 1);
+            next.splice(toIndex, 0, moved);
+            return next;
+        });
     };
 
     const handleSaveWork = async () => {
@@ -294,11 +306,12 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
             if (editingWorkId) {
                 const updatedWork = await cloudUpdateWork(editingWorkId, {
                     title: workFormTitle,
-                    year: workFormYear || 'Unknown',
-                    edition: workFormEdition || 'Standard Edition',
+                    year: workFormYear || getDefaultWorkYear(language),
+                    edition: workFormEdition || getDefaultWorkEdition(language),
                 });
-                if (workFormFile) {
-                    const fileUrl = await cloudUploadSheetMusic(workFormFile, editingWorkId);
+                if (workFormFiles.length > 0) {
+                    const uploadFile = await prepareSheetUploadFile(workFormFiles, editingWorkId, workFormTitle);
+                    const fileUrl = await cloudUploadSheetMusic(uploadFile, editingWorkId);
                     const workWithFile = await cloudUploadWorkFile(editingWorkId, fileUrl);
                     updatedWork.fileUrl = workWithFile.fileUrl;
                 }
@@ -310,11 +323,12 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 const newWork = await cloudCreateWork({
                     composer_id: composer.id,
                     title: workFormTitle,
-                    year: workFormYear || 'Unknown',
-                    edition: workFormEdition || 'Standard Edition',
+                    year: workFormYear || getDefaultWorkYear(language),
+                    edition: workFormEdition || getDefaultWorkEdition(language),
                 });
-                if (workFormFile) {
-                    const fileUrl = await cloudUploadSheetMusic(workFormFile, newWork.id);
+                if (workFormFiles.length > 0) {
+                    const uploadFile = await prepareSheetUploadFile(workFormFiles, newWork.id, workFormTitle);
+                    const fileUrl = await cloudUploadSheetMusic(uploadFile, newWork.id);
                     const workWithFile = await cloudUploadWorkFile(newWork.id, fileUrl);
                     newWork.fileUrl = workWithFile.fileUrl;
                 }
@@ -328,7 +342,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
             setWorkFormTitle('');
             setWorkFormYear('');
             setWorkFormEdition('');
-            setWorkFormFile(null);
+            setWorkFormFiles([]);
         } catch (err) {
             console.error('Failed to save cloud work:', err);
         } finally {
@@ -456,7 +470,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                         onClick={() => isEditing ? setShowPortraitModal(true) : null}
                     >
                         <div className={`relative ${desktopMode ? 'h-36 w-36' : 'h-44 w-44'} rounded-full shadow-lg overflow-hidden border-4 border-white bg-gray-200 ring-1 ring-black/5`}>
-                            {/* NOTE: 与本地页和设置页一致，统一使用 ui-avatars.com 生成首字母头像 */}
+                            {/* NOTE: 涓庢湰鍦伴〉鍜岃缃〉涓€鑷达紝缁熶竴浣跨敤 ui-avatars.com 鐢熸垚棣栧瓧姣嶅ご鍍?*/}
                             <img
                                 src={
                                     composer.image && !composer.image.startsWith('/composer-placeholder')
@@ -466,7 +480,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                 alt={composer.name}
                                 className="w-full h-full object-cover"
                             />
-                            {/* NOTE: 编辑模式下叠加半透明黑色遮罩 */}
+                            {/* NOTE: 缂栬緫妯″紡涓嬪彔鍔犲崐閫忔槑榛戣壊閬僵 */}
                             {isEditing && (
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center animate-in fade-in duration-200">
                                     <Camera className="text-white drop-shadow-md" size={32} />
@@ -573,7 +587,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                         key={work.id}
                                         className={`group flex items-center gap-4 ${desktopMode ? 'px-5 py-3.5' : 'px-6 py-4'} hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative overflow-hidden ${!isEditing && work.fileUrl ? 'cursor-pointer' : ''}`}
                                         onClick={() => {
-                                            // NOTE: 非 admin 用户点击乐谱先弹版权确认弹窗
+                                            // NOTE: 闈?admin 鐢ㄦ埛鐐瑰嚮涔愯氨鍏堝脊鐗堟潈纭寮圭獥
                                             if (!isEditing && work.fileUrl) {
                                                 handleOpenFile(work.fileUrl);
                                             }
@@ -597,7 +611,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                                 {work.title}
                                             </p>
                                             <p className="text-textSub text-sm leading-normal truncate font-medium mt-0.5">
-                                                {work.edition} · {work.year}
+                                                {formatWorkMetaForDisplay(work.edition, work.year, language)}
                                             </p>
                                         </div>
 
@@ -635,7 +649,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                         key={recording.id}
                                         className={`group flex items-center gap-4 ${desktopMode ? 'px-5 py-3.5' : 'px-6 py-4'} hover:bg-black/5 transition-colors border-b border-divider last:border-0 relative ${!isEditing && recording.fileUrl ? 'cursor-pointer' : ''}`}
                                         onClick={() => {
-                                            // NOTE: 非 admin 用户点击录音先弹版权确认弹窗
+                                            // NOTE: 闈?admin 鐢ㄦ埛鐐瑰嚮褰曢煶鍏堝脊鐗堟潈纭寮圭獥
                                             if (!isEditing && recording.fileUrl) {
                                                 handleOpenFile(recording.fileUrl);
                                             }
@@ -659,7 +673,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                                                 {recording.title}
                                             </p>
                                             <p className="text-textSub text-sm leading-normal truncate font-medium mt-0.5">
-                                                {recording.performer} · {recording.year}
+                                                {recording.performer} / {recording.year}
                                             </p>
                                         </div>
 
@@ -702,7 +716,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 )}
             </div>
 
-            {/* FAB - 仅 admin 显示 */}
+            {/* FAB - 浠?admin 鏄剧ず */}
             {isAdmin && <motion.button
                 onClick={viewMode === 'Sheet Music' ? openAddWorkModal : openAddRecordingModal}
                 className={`fixed size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20 ${desktopMode ? 'right-8 bottom-8' : 'bottom-24 left-6'}`}
@@ -756,40 +770,84 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                 <div className="flex flex-col font-sans">
                     <h3 className="text-xl font-bold text-textMain mb-5 font-serif text-center">{editingWorkId ? t.cloud.editWork : t.cloud.addWork}</h3>
 
-                    {/* PDF Upload */}
+                    {/* Sheet Upload (PDF or Images) */}
                     <input
                         type="file"
                         ref={fileInputRef}
-                        accept=".pdf"
+                        accept={SHEET_UPLOAD_ACCEPT}
+                        multiple
                         className="hidden"
                         onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) setWorkFormFile(file);
+                            const files = Array.from(e.target.files || []);
+                            const validationError = validateSheetUploadFiles(files);
+                            if (validationError) {
+                                alert(validationError);
+                                if (fileInputRef.current) {
+                                    fileInputRef.current.value = '';
+                                }
+                                return;
+                            }
+                            setWorkFormFiles(files);
                         }}
                     />
                     <div
                         onClick={() => fileInputRef.current?.click()}
-                        className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-all mb-5 ${workFormFile ? 'border-oldGold bg-oldGold/5' : 'border-gray-300 hover:border-oldGold/50'}`}
+                        className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-all mb-5 ${workFormFiles.length > 0 ? 'border-oldGold bg-oldGold/5' : 'border-gray-300 hover:border-oldGold/50'}`}
                     >
-                        {workFormFile ? (
+                        {workFormFiles.length > 0 ? (
                             <>
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-oldGold/10 text-oldGold mb-2">
                                     <Check size={22} />
                                 </div>
-                                <p className="text-textMain font-semibold text-sm text-center truncate max-w-full">{workFormFile.name}</p>
+                                <p className="text-textMain font-semibold text-sm text-center truncate max-w-full">
+                                    {workFormFiles.length === 1 ? workFormFiles[0].name : `Selected ${workFormFiles.length} files`}
+                                </p>
                                 <p className="text-textSub text-xs mt-0.5">{t.cloud.form.changeFile}</p>
+                                <p className="text-textSub text-xs mt-0.5">{getSheetSelectionHint(workFormFiles)}</p>
                             </>
                         ) : (
                             <>
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400 mb-2">
                                     <Upload size={22} />
                                 </div>
-                                <p className="text-textMain font-semibold text-sm">{t.cloud.form.selectFile}</p>
-                                <p className="text-textSub text-xs mt-0.5">PDF</p>
+                                <p className="text-textMain font-semibold text-sm">Select PDF or images</p>
+                                <p className="text-textSub text-xs mt-0.5">Multiple images will be combined into one PDF</p>
                             </>
                         )}
                     </div>
-
+                    {workFormFiles.length > 1 && (
+                        <div className="mb-5 rounded-xl border border-gray-200 bg-white/80 p-3">
+                            <p className="mb-2 text-xs font-semibold text-textSub">Page order (used for merge)</p>
+                            <div className="space-y-2">
+                                {workFormFiles.map((file, index) => (
+                                    <div key={`${file.name}-${index}`} className="flex items-center gap-2 rounded-lg border border-gray-100 px-2 py-1.5">
+                                        <span className="w-6 shrink-0 text-center text-xs font-bold text-oldGold">{index + 1}</span>
+                                        <span className="flex-1 truncate text-xs text-textMain">{file.name}</span>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => moveWorkFormFile(index, index - 1)}
+                                                disabled={index === 0}
+                                                className="rounded p-1 text-textSub hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+                                                aria-label="Move up"
+                                            >
+                                                <ChevronUp size={14} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => moveWorkFormFile(index, index + 1)}
+                                                disabled={index === workFormFiles.length - 1}
+                                                className="rounded p-1 text-textSub hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+                                                aria-label="Move down"
+                                            >
+                                                <ChevronDown size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {/* Form Fields */}
                     <div className="space-y-4 mb-6">
                         <div>
@@ -1025,7 +1083,7 @@ export const CloudComposerDetailScreen: React.FC<CloudComposerDetailScreenProps>
                         <button
                             onClick={() => {
                                 if (pendingFileUrl) {
-                                    // NOTE: 版权确认后在新标签页打开云端文件
+                                    // NOTE: 鐗堟潈纭鍚庡湪鏂版爣绛鹃〉鎵撳紑浜戠鏂囦欢
                                     window.open(pendingFileUrl, '_blank');
                                     setShowCopyrightModal(false);
                                     setPendingFileUrl(null);
