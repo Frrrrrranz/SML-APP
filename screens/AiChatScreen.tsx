@@ -298,10 +298,7 @@ export const AiChatScreen: React.FC = () => {
     const renderDesktopSidebar = () => (
         <aside className="rounded-2xl border border-gray-100 bg-white/70 p-5 backdrop-blur-sm">
             <div className="mb-5">
-                <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#F0F0EB]">
-                    <Sparkles className="h-6 w-6 text-oldGold opacity-80" strokeWidth={1.5} />
-                </div>
-                <h2 className="text-2xl font-bold tracking-tight text-textMain font-serif">{t.aiChat.title}</h2>
+                <h2 className="text-4xl font-bold tracking-tight text-textMain font-serif">{t.aiChat.title}</h2>
                 <p className="mt-2 text-sm text-textSub leading-relaxed">{t.aiChat.greeting}</p>
             </div>
 
@@ -407,10 +404,9 @@ export const AiChatScreen: React.FC = () => {
                         {messages.length === 0 ? (
                             <div className="flex flex-1 items-center justify-center px-8 text-center">
                                 <div>
-                                    <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#F0F0EB]">
-                                        <Sparkles className="h-7 w-7 text-oldGold opacity-80" strokeWidth={1.5} />
+                                    <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#F0F0EB]">
+                                        <Sparkles className="h-10 w-10 text-oldGold opacity-80" strokeWidth={1.5} />
                                     </div>
-                                    <p className="text-base text-textSub">{t.aiChat.greeting}</p>
                                 </div>
                             </div>
                         ) : (
