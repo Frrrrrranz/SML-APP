@@ -250,7 +250,13 @@ export const dbUpdateComposer = async (id: string, updates: Record<string, unkno
     const fields = Object.keys(updates).filter(k => !['works', 'recordings', 'id', 'sheetMusicCount', 'recordingCount'].includes(k));
     if (fields.length === 0) {
         const result = await dbQuery('SELECT * FROM composers WHERE id = ?', [id]);
-        return result.values?.[0];
+        const composer = result.values?.[0];
+        if (!composer) return composer;
+
+        return {
+            ...composer,
+            image: await resolveImageUrl(composer.image as string),
+        };
     }
 
     const setClause = fields.map(f => `${f} = ?`).join(', ');
@@ -259,7 +265,13 @@ export const dbUpdateComposer = async (id: string, updates: Record<string, unkno
     await dbRunSql(`UPDATE composers SET ${setClause} WHERE id = ?`, [...values, id]);
 
     const result = await dbQuery('SELECT * FROM composers WHERE id = ?', [id]);
-    return result.values?.[0];
+    const composer = result.values?.[0];
+    if (!composer) return composer;
+
+    return {
+        ...composer,
+        image: await resolveImageUrl(composer.image as string),
+    };
 };
 
 export const dbDeleteComposer = async (id: string) => {
