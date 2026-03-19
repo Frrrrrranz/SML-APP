@@ -321,7 +321,7 @@ export const AiChatScreen: React.FC = () => {
     const renderInputBar = () => {
         if (desktopMode) {
             return (
-                <div className="border-t border-gray-100 bg-white/90 px-4 py-3">
+                <div className="shrink-0 border-t border-gray-100 bg-white/90 px-4 py-3">
                     <div className="flex items-center gap-2.5">
                         <input
                             ref={inputRef}
@@ -395,31 +395,33 @@ export const AiChatScreen: React.FC = () => {
     };
 
     return (
-        <div className={`min-h-screen bg-background ${desktopMode ? 'pb-6' : 'flex flex-col pb-20'}`}>
+        <div className={`${desktopMode ? 'h-screen overflow-hidden bg-background' : 'min-h-screen bg-background flex flex-col pb-20'}`}>
             {desktopMode ? (
-                <div className="min-h-screen">
-                    <header className="sticky top-0 z-10 bg-background/60 backdrop-blur-2xl backdrop-saturate-150 px-6 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4 transition-all duration-300">
+                <div className="flex h-full flex-col overflow-hidden">
+                    <header className="shrink-0 bg-background/60 backdrop-blur-2xl backdrop-saturate-150 px-6 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4 transition-all duration-300">
                         <h1 className="text-4xl font-bold tracking-tight text-textMain font-serif">
                             {t.aiChat.title}
                         </h1>
                     </header>
 
-                    <div className="grid h-[calc(100vh-8.5rem)] grid-cols-[320px_minmax(0,1fr)] gap-6 px-6 pb-6">
-                        {renderDesktopSidebar()}
-                        <section className="flex min-h-0 flex-col rounded-2xl border border-gray-100 bg-white/70 backdrop-blur-sm">
-                            {messages.length === 0 ? (
-                                <div className="flex flex-1 items-center justify-center px-8 text-center">
-                                    <div>
-                                        <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#F0F0EB]">
-                                            <Sparkles className="h-10 w-10 text-oldGold opacity-80" strokeWidth={1.5} />
+                    <div className="min-h-0 flex-1 px-6 pb-6">
+                        <div className="grid h-full grid-cols-[320px_minmax(0,1fr)] gap-6">
+                            {renderDesktopSidebar()}
+                            <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white/70 backdrop-blur-sm">
+                                {messages.length === 0 ? (
+                                    <div className="flex flex-1 items-center justify-center px-8 text-center">
+                                        <div>
+                                            <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#F0F0EB]">
+                                                <Sparkles className="h-10 w-10 text-oldGold opacity-80" strokeWidth={1.5} />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ) : (
-                                renderMessages()
-                            )}
-                            {renderInputBar()}
-                        </section>
+                                ) : (
+                                    renderMessages()
+                                )}
+                                {renderInputBar()}
+                            </section>
+                        </div>
                     </div>
                 </div>
             ) : (
