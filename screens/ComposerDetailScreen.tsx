@@ -92,7 +92,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         await openWithSystemApp(fileUrl);
       } catch (error) {
         console.error('Failed to open file with system app:', error);
-        alert('无法打开文件，请确认系统已安装可用的查看应用。');
+        alert('无法预览文件，请稍后重试。');
       }
     } else {
       setPendingFileUrl(fileUrl);
@@ -873,7 +873,7 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
                     await openWithSystemApp(pendingFileUrl);
                   } catch (error) {
                     console.error('Failed to open file:', error);
-                    alert('无法打开文件，请确认系统已安装可用的查看应用。');
+                    alert('无法预览文件，请稍后重试。');
                   }
                   setShowCopyrightModal(false);
                   setPendingFileUrl(null);

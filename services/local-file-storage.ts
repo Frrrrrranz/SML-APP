@@ -268,15 +268,13 @@ export const openWithSystemApp = async (filePath: string): Promise<void> => {
 
     // Electron 分支：通过 IPC 调用 shell.openPath
     if (isElectron()) {
-        const ext = filePath.split('.').pop()?.toLowerCase() || '';
-        if (ext === 'html' || ext === 'htm') {
-            const htmlUri = await getLocalFileUri(filePath);
-            if (htmlUri) {
-                window.open(htmlUri, '_blank');
-                return;
-            }
+        const localFileUri = await getLocalFileUri(filePath);
+        if (localFileUri) {
+            window.open(localFileUri, '_blank');
+            return;
         }
-        console.log('[openWithSystemApp] Opening via Electron IPC');
+
+        console.warn('[openWithSystemApp] Failed to resolve preview URI, falling back to system app');
         await window.electronAPI!.openFile(filePath);
         return;
     }
