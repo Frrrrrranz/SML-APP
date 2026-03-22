@@ -28,6 +28,7 @@ const configureDesktopUserDataPath = (): void => {
 };
 
 configureDesktopUserDataPath();
+app.setName('SML');
 
 /**
  * SML Desktop — Electron 主进程
@@ -281,6 +282,15 @@ const createWindow = (): void => {
     // 加载渲染资源：优先已安装的桌面 Web bundle，回退到内置 dist
     const entryPath = getPreferredRendererEntry();
     mainWindow.loadFile(entryPath);
+
+    // Ensure preview windows spawned from window.open use the product title on desktop.
+    mainWindow.webContents.setWindowOpenHandler(() => ({
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+            title: 'SML',
+            autoHideMenuBar: true,
+        },
+    }));
 
     // 窗口准备好后再显示
     mainWindow.once('ready-to-show', () => {
