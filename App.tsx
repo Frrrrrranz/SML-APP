@@ -39,10 +39,11 @@ const AppContent: React.FC = () => {
   // OTA 热更新相关状态
   const [updateVersion, setUpdateVersion] = useState('');
   const [updateDownloadUrl, setUpdateDownloadUrl] = useState('');
-  const [updateSource, setUpdateSource] = useState<'ota' | 'desktop'>('ota');
+  const [updateSource, setUpdateSource] = useState<'android-ota' | 'desktop-web' | 'desktop-app'>('android-ota');
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<'prompt' | 'downloading' | 'success' | 'error'>('prompt');
   const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateErrorDetail, setUpdateErrorDetail] = useState('');
 
   // NOTE: 监听 Android 返回键/侧滑手势，实现原生导航体验
   // Electron 不需要此功能，桌面端有原生窗口关闭按钮
@@ -74,11 +75,12 @@ const AppContent: React.FC = () => {
       try {
         const update = await checkForUpdate();
         if (update && update.isWebUpdate) {
-          setUpdateSource('ota');
+          setUpdateSource('android-ota');
           setUpdateVersion(update.version);
           setUpdateDownloadUrl(update.downloadUrl);
           setUpdateStatus('prompt');
           setUpdateProgress(0);
+          setUpdateErrorDetail('');
           setShowUpdateModal(true);
         }
       } catch (error) {
@@ -103,11 +105,12 @@ const AppContent: React.FC = () => {
       try {
         const update = await window.electronAPI!.desktopWebCheckForUpdate(DESKTOP_WEB_VERSION);
         if (update && update.isWebUpdate) {
-          setUpdateSource('ota');
+          setUpdateSource('desktop-web');
           setUpdateVersion(update.version);
           setUpdateDownloadUrl(update.downloadUrl);
           setUpdateStatus('prompt');
           setUpdateProgress(0);
+          setUpdateErrorDetail('');
           setShowUpdateModal(true);
         }
       } catch (error) {
@@ -121,11 +124,12 @@ const AppContent: React.FC = () => {
     if (!isElectron() || !window.electronAPI) return;
 
     const offAvailable = window.electronAPI.onUpdateAvailable(({ version }) => {
-      setUpdateSource('desktop');
+      setUpdateSource('desktop-app');
       setUpdateVersion(version);
       setUpdateDownloadUrl('');
       setUpdateStatus('prompt');
       setUpdateProgress(0);
+      setUpdateErrorDetail('');
       setShowUpdateModal(true);
     });
 
@@ -137,12 +141,14 @@ const AppContent: React.FC = () => {
     const offDownloaded = window.electronAPI.onUpdateDownloaded(() => {
       setUpdateStatus('success');
       setUpdateProgress(100);
+      setUpdateErrorDetail('');
       setShowUpdateModal(true);
     });
 
     const offError = window.electronAPI.onUpdateError(({ message }) => {
       console.error('Desktop app update failed:', message);
       setUpdateStatus('error');
+      setUpdateErrorDetail(message || '');
       setShowUpdateModal(true);
     });
 
@@ -162,13 +168,15 @@ const AppContent: React.FC = () => {
   const handleConfirmUpdate = async () => {
     setUpdateStatus('downloading');
     setUpdateProgress(0);
+    setUpdateErrorDetail('');
 
-    if (updateSource === 'desktop' && isElectron() && window.electronAPI?.downloadUpdate) {
+    if (updateSource === 'desktop-app' && isElectron() && window.electronAPI?.downloadUpdate) {
       try {
         await window.electronAPI.downloadUpdate();
       } catch (error) {
         console.error('Desktop app update download failed:', error);
         setUpdateStatus('error');
+        setUpdateErrorDetail(error instanceof Error ? error.message : String(error));
       }
       return;
     }
@@ -180,10 +188,17 @@ const AppContent: React.FC = () => {
       success = await downloadUpdate(updateDownloadUrl, setUpdateProgress);
     }
     setUpdateStatus(success ? 'success' : 'error');
+    if (!success) {
+      setUpdateErrorDetail(
+        updateSource === 'desktop-web'
+          ? 'Desktop Web OTA bundle download or apply failed.'
+          : ''
+      );
+    }
   };
 
   const handleApplyUpdate = async () => {
-    if (updateSource === 'desktop' && isElectron() && window.electronAPI?.installUpdate) {
+    if (updateSource === 'desktop-app' && isElectron() && window.electronAPI?.installUpdate) {
       await window.electronAPI.installUpdate();
       return;
     }
@@ -329,7 +344,15 @@ const AppContent: React.FC = () => {
           version={updateVersion}
           status={updateStatus}
           progress={updateProgress}
-          sourceLabel={updateSource === 'desktop' ? 'Desktop' : 'OTA'}
+          sourceType={updateSource}
+          sourceLabel={
+            updateSource === 'desktop-app'
+              ? 'Desktop App'
+              : updateSource === 'desktop-web'
+                ? 'Desktop OTA'
+                : 'OTA'
+          }
+          errorDetail={updateErrorDetail}
           onConfirm={handleConfirmUpdate}
           onDismiss={() => setShowUpdateModal(false)}
           onReload={handleApplyUpdate}

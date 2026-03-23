@@ -15,6 +15,7 @@ asar: true
 asarUnpack:
   - node_modules/better-sqlite3/**/*
 win:
+  artifactName: "${productName}-Setup-${version}.${ext}"
   target:
     - nsis
     - zip
