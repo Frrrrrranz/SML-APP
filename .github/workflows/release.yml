@@ -190,7 +190,7 @@ jobs:
         with:
           draft: true
           name: SML ${{ env.tag }}
-          generate_release_notes: true
+          body_path: .github/release-body.md
           files: |
             windows_outputs/*.exe
             windows_outputs/*.zip

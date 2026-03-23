@@ -1,7 +1,7 @@
 {
     "name": "SML - Sheet Music Library",
     "short_name": "SML",
-    "description": "乐谱与录音管理应用，帮助音乐爱好者整理乐谱和录音，提供便捷的搜索和分类功能。",
+    "description": "SML 是一款面向 Android 与 Windows 的乐谱和录音管理应用，支持作曲家分类整理、乐谱与录音上传、本地离线存储、快速搜索、云端资源库浏览以及 AI 音乐助手。",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#FAFAFA",
