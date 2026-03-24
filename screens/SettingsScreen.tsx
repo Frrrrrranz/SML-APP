@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { LogOut, Languages, ChevronRight, HardDrive, Upload, Check } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { ANDROID_WEB_VERSION, APP_VERSION, DESKTOP_WEB_VERSION } from '../constants/app-version';
+import { DEFAULT_DESKTOP_AUTO_UPDATE_ENABLED, DESKTOP_AUTO_UPDATE_KEY } from '../constants/update-settings';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useStorage } from '../contexts/StorageContext';
@@ -32,6 +33,7 @@ export const SettingsScreen: React.FC = () => {
   const [isPushing, setIsPushing] = useState(false);
   const [pushProgress, setPushProgress] = useState(0);
   const [pushResult, setPushResult] = useState<'success' | 'error' | null>(null);
+  const [desktopAutoUpdateEnabled, setDesktopAutoUpdateEnabled] = useState(DEFAULT_DESKTOP_AUTO_UPDATE_ENABLED);
   const versionDisplay = isAndroid()
     ? `android v${ANDROID_WEB_VERSION}`
     : isElectron()
@@ -40,6 +42,14 @@ export const SettingsScreen: React.FC = () => {
 
   useEffect(() => {
     getStorageUsage().then(setLocalUsage).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (!isElectron()) return;
+    const stored = localStorage.getItem(DESKTOP_AUTO_UPDATE_KEY);
+    setDesktopAutoUpdateEnabled(
+      stored === null ? DEFAULT_DESKTOP_AUTO_UPDATE_ENABLED : stored === 'true'
+    );
   }, []);
 
   const avatarUrl = profile?.avatar_url ||
@@ -59,6 +69,12 @@ export const SettingsScreen: React.FC = () => {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  };
+
+  const handleToggleDesktopAutoUpdate = () => {
+    const next = !desktopAutoUpdateEnabled;
+    setDesktopAutoUpdateEnabled(next);
+    localStorage.setItem(DESKTOP_AUTO_UPDATE_KEY, String(next));
   };
 
   const handleOpenPushModal = async () => {
@@ -252,6 +268,35 @@ export const SettingsScreen: React.FC = () => {
                 <ChevronRight size={20} className="opacity-60" />
               </div>
             </div>
+            {isElectron() && (
+              <button
+                onClick={handleToggleDesktopAutoUpdate}
+                className="flex w-full items-center gap-4 border-t border-gray-100 px-4 py-3.5 text-left transition-colors hover:bg-gray-50"
+              >
+                <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
+                  desktopAutoUpdateEnabled ? 'bg-green-500/10 text-green-600' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  <Check size={20} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-lg font-medium text-textMain">{t.settings.preferences.desktopAutoUpdate}</p>
+                  <p className="mt-0.5 text-xs text-textSub">
+                    {desktopAutoUpdateEnabled
+                      ? t.settings.preferences.desktopAutoUpdateOnDesc
+                      : t.settings.preferences.desktopAutoUpdateOffDesc}
+                  </p>
+                </div>
+                <div className={`relative h-7 w-12 rounded-full transition-colors ${
+                  desktopAutoUpdateEnabled ? 'bg-oldGold' : 'bg-gray-300'
+                }`}>
+                  <span
+                    className={`absolute top-1 size-5 rounded-full bg-white shadow-sm transition-all ${
+                      desktopAutoUpdateEnabled ? 'left-6' : 'left-1'
+                    }`}
+                  />
+                </div>
+              </button>
+            )}
           </div>
         </motion.div>
 

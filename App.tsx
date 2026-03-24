@@ -23,6 +23,7 @@ import { SplashScreen } from './screens/SplashScreen';
 import { checkForUpdate, downloadUpdate, applyUpdateAndReload, notifyAppReady } from './services/ota-update';
 import { isAndroid, isElectron } from './services/platform';
 import { DESKTOP_WEB_VERSION } from './constants/app-version';
+import { DEFAULT_DESKTOP_AUTO_UPDATE_ENABLED, DESKTOP_AUTO_UPDATE_KEY } from './constants/update-settings';
 
 
 
@@ -44,6 +45,14 @@ const AppContent: React.FC = () => {
   const [updateStatus, setUpdateStatus] = useState<'prompt' | 'downloading' | 'success' | 'error'>('prompt');
   const [updateProgress, setUpdateProgress] = useState(0);
   const [updateErrorDetail, setUpdateErrorDetail] = useState('');
+  const shouldAutoCheckDesktopUpdates = isElectron()
+    ? (() => {
+        const stored = localStorage.getItem(DESKTOP_AUTO_UPDATE_KEY);
+        return stored === null
+          ? DEFAULT_DESKTOP_AUTO_UPDATE_ENABLED
+          : stored === 'true';
+      })()
+    : false;
 
   // NOTE: 监听 Android 返回键/侧滑手势，实现原生导航体验
   // Electron 不需要此功能，桌面端有原生窗口关闭按钮
@@ -101,6 +110,7 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (!isElectron() || !window.electronAPI?.desktopWebCheckForUpdate) return;
+    if (!shouldAutoCheckDesktopUpdates) return;
     const doDesktopCheck = async () => {
       try {
         const update = await window.electronAPI!.desktopWebCheckForUpdate(DESKTOP_WEB_VERSION);
@@ -118,10 +128,11 @@ const AppContent: React.FC = () => {
       }
     };
     doDesktopCheck();
-  }, []);
+  }, [shouldAutoCheckDesktopUpdates]);
 
   useEffect(() => {
     if (!isElectron() || !window.electronAPI) return;
+    if (!shouldAutoCheckDesktopUpdates) return;
 
     const offAvailable = window.electronAPI.onUpdateAvailable(({ version }) => {
       setUpdateSource('desktop-app');
@@ -162,7 +173,7 @@ const AppContent: React.FC = () => {
       offDownloaded();
       offError();
     };
-  }, []);
+  }, [shouldAutoCheckDesktopUpdates]);
 
   // 处理用户确认更新（仅下载，不自动重载）
   const handleConfirmUpdate = async () => {

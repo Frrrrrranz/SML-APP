@@ -82,6 +82,9 @@ export const translations = {
                 title: '偏好',
                 audioQuality: '音频质量',
                 appearance: '外观',
+                desktopAutoUpdate: '自动检查桌面更新',
+                desktopAutoUpdateOnDesc: '启动时检查 GitHub Release 更新，适合网络可稳定访问 GitHub 时开启。',
+                desktopAutoUpdateOffDesc: '已关闭，避免更新源不可达时在启动阶段反复弹出更新错误。',
             },
             data: {
                 title: '数据',
@@ -334,6 +337,9 @@ export const translations = {
                 title: 'Preferences',
                 audioQuality: 'Audio Quality',
                 appearance: 'Appearance',
+                desktopAutoUpdate: 'Auto-check desktop updates',
+                desktopAutoUpdateOnDesc: 'Checks GitHub Releases on startup. Enable this when your network can access GitHub reliably.',
+                desktopAutoUpdateOffDesc: 'Disabled to avoid repeated startup update popups when the update source is unreachable.',
             },
             data: {
                 title: 'Data',
