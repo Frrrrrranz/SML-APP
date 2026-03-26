@@ -4,7 +4,7 @@ export const APP_VERSION = '1.1.2';
 
 // Android Web 资源版本号（Android OTA 热更新专用）
 // NOTE: 前三位与大版本一致，第四位表示 Android OTA 热更新次数
-export const ANDROID_WEB_VERSION = '1.1.2.1';
+export const ANDROID_WEB_VERSION = '1.1.2.0';
 
 // Desktop Web 资源版本号（Desktop OTA 热更新专用）
 // NOTE: 前三位与大版本一致，第四位表示 Desktop OTA 热更新次数
