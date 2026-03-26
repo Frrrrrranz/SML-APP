@@ -1,7 +1,7 @@
 /**
  * Electron API ç±»åž‹å£°æ˜Ž
- * NOTE: ç”?electron/src/preload.ts é€šè¿‡ contextBridge æ³¨å…¥åˆ?window ä¸?
- * Android / Web çŽ¯å¢ƒä¸?window.electronAPI ä¸?undefined
+ * NOTE: ç”± `electron/src/preload.ts` é€šè¿‡ `contextBridge` æ³¨å…¥åˆ° `window` ä¸Š
+ * Android / Web çŽ¯å¢ƒä¸‹ `window.electronAPI` ä¸º `undefined`
  */
 
 interface ElectronAPI {
@@ -31,7 +31,7 @@ interface ElectronAPI {
     onUpdateDownloaded: (callback: () => void) => (() => void);
     onUpdateError: (callback: (data: { message: string }) => void) => (() => void);
 
-    // ×ÀÃæ¶Ë Web ×ÊÔ´ÈÈ¸üÐÂ
+    // æ¡Œé¢ç«¯ Web èµ„æºçƒ­æ›´æ–°
     desktopWebCheckForUpdate: (currentVersion: string) => Promise<{
         version: string;
         downloadUrl: string;
@@ -50,4 +50,3 @@ declare global {
 }
 
 export { };
-
