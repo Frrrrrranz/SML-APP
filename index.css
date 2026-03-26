@@ -34,12 +34,18 @@
 /* ============================================= */
 /* 全局基础样式（从 index.html 迁移）           */
 /* ============================================= */
+html {
+    /* NOTE: 配合原生 overscroll 禁用，防止 Web 层根级出现意外弹性滚动 */
+    overscroll-behavior: none;
+}
+
 body {
     background-color: #FAFAFA;
     color: #171611;
     -webkit-font-smoothing: antialiased;
     /* 适配全面屏安全区域（刘海屏/圆角屏） */
     padding-bottom: env(safe-area-inset-bottom);
+    overscroll-behavior: none;
 }
 
 /* Shimmer skeleton background */
