@@ -1,5 +1,5 @@
-// 前端 Gemini API 服务模块
-// NOTE: 通过 Supabase Edge Function 代理调用 Gemini API
+// 前端 AI Chat API 服务模块
+// NOTE: 通过 Supabase Edge Function 代理调用大模型服务
 // API Key 存储在 Supabase Secrets 中，前端完全不接触密钥
 
 import { supabase } from '../supabase';
@@ -9,14 +9,14 @@ interface GeminiChatResponse {
 }
 
 /**
- * 通过 Supabase Edge Function 向 Gemini AI 提问
+ * 通过 Supabase Edge Function 向 AI 提问
  * @param question 用户的问题
  * @returns AI 的回答文本
  * @throws 当 API 调用失败时抛出错误
  */
 export const askMusicQuestion = async (question: string): Promise<string> => {
     try {
-        const { data, error } = await supabase.functions.invoke('gemini-chat', {
+        const { data, error } = await supabase.functions.invoke('ai-chat', {
             body: { question },
         });
 

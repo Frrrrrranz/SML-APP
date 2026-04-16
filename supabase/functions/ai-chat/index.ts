@@ -1,13 +1,14 @@
 // Supabase Edge Function: AI 音乐助手代理
 // NOTE: 使用阿里云通义千问 (DashScope) API，兼容 OpenAI 格式
 // 包含用户级速率限制：每小时 10 次、每天 30 次
-// 部署命令: npx supabase functions deploy gemini-chat --no-verify-jwt
+// 部署命令: npx supabase functions deploy ai-chat --no-verify-jwt
 
 // NOTE: 精简版系统提示词，减少 token 消耗
 const SYSTEM_PROMPT = `你是SML古典音乐助手。回答作曲家、作品、乐理、音乐史问题。
 要求：简明准确，1-3段，用户用什么语言你就用什么语言回答。非音乐话题请礼貌拒绝。`
 
-const MODEL = 'qwen-turbo'
+// NOTE: 使用体验更好的 qwen-plus 模型，并复用旧有函数名
+const MODEL = 'qwen-plus'
 const API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 
 // 速率限制配置
