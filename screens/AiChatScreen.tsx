@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Sparkles, User, Loader2, AlertCircle, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { askMusicQuestion } from '../services/ai-chat';
+import { askMusicQuestion } from '../services/gemini';
 import { staggerContainer, listItem } from '../utils/animations';
 import { isElectron } from '../services/platform';
 
