@@ -280,7 +280,7 @@ const AppContent: React.FC = () => {
       {/* 主内容区域 */}
       <div className={`
         ${electronMode
-          ? 'flex-1 bg-background min-h-screen ml-[220px]'
+          ? 'flex-1 bg-background min-h-screen ml-[220px] overflow-x-hidden'
           : 'w-full max-w-[480px] bg-background min-h-screen shadow-2xl relative overflow-hidden'
         }
       `}>
