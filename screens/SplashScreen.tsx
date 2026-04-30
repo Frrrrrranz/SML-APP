@@ -33,12 +33,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 <motion.div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-[#FAFAFA]"
                     initial={{ opacity: 1 }}
-                    exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+                    exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" as const } }}
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 1, ease: "easeOut" }}
+                        transition={{ duration: 1, ease: "easeOut" as const }}
                         className="flex flex-col items-center"
                     >
                         {/* 使用 CSS 绘制或 SVG 渲染 Logo，或者直接显示文字，避免图片加载闪烁 */}

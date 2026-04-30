@@ -98,7 +98,7 @@ export const AuthScreen: React.FC = () => {
                     className="w-full max-w-sm text-center"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    transition={{ duration: 0.4, ease: 'easeOut' as const }}
                 >
                     <div className="flex justify-center mb-6">
                         <motion.div
@@ -184,7 +184,7 @@ export const AuthScreen: React.FC = () => {
                         onSubmit={handleSubmit}
                         className="flex flex-col"
                         layout
-                        transition={{ layout: { duration: 0.24, ease: 'easeInOut' } }}
+                        transition={{ layout: { duration: 0.24, ease: 'easeInOut' as const } }}
                     >
                         {/* Nickname (Register Only) - 带高度与透明度过渡，避免切换时跳动 */}
                         <AnimatePresence initial={false}>
@@ -203,7 +203,7 @@ export const AuthScreen: React.FC = () => {
                                         initial={{ y: -6 }}
                                         animate={{ y: 0 }}
                                         exit={{ y: -4 }}
-                                        transition={{ duration: 0.18, ease: 'easeOut' }}
+                                        transition={{ duration: 0.18, ease: 'easeOut' as const }}
                                     >
                                         <div className="absolute left-0 top-3 text-gray-400">
                                             <User size={20} />
@@ -297,7 +297,7 @@ export const AuthScreen: React.FC = () => {
                                     initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                                     animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
                                     exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                                    transition={{ duration: 0.2, ease: 'easeInOut' as const }}
                                     className="overflow-hidden"
                                 >
                                     <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-4 py-3 rounded-lg">
@@ -421,7 +421,7 @@ export const AuthScreen: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.96 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.96 }}
-                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                            transition={{ duration: 0.2, ease: 'easeOut' as const }}
                         >
                             <div className="flex items-start gap-3">
                                 <div className="mt-0.5 text-red-500">
@@ -466,7 +466,7 @@ export const AuthScreen: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                            transition={{ duration: 0.2, ease: 'easeOut' as const }}
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between mb-4">

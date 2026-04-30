@@ -134,7 +134,7 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            transition={{ duration: 0.5, ease: 'easeOut' as const }}
             className="flex flex-col items-center justify-center pt-32"
           >
             <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#EBEAE6] text-oldGold shadow-soft">
@@ -211,7 +211,6 @@ export const ComposersScreen: React.FC<ComposersScreenProps> = ({ composers, isL
         className={`fixed size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center z-30 ring-2 ring-white/20 ${electronMode ? 'right-8 bottom-8' : 'left-6 bottom-24'}`}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.3, type: 'spring', stiffness: 400, damping: 20 }}
         {...fabAnimation}
       >
         <Plus size={28} />

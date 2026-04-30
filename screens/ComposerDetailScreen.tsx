@@ -778,7 +778,6 @@ export const ComposerDetailScreen: React.FC<ComposerDetailScreenProps> = ({
         className={`fixed size-14 bg-oldGold text-white rounded-full shadow-xl flex items-center justify-center hover:bg-opacity-90 transition-all z-30 ring-2 ring-white/20 ${desktopMode ? 'right-8 bottom-8' : 'bottom-24 left-6'}`}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.3, type: 'spring', stiffness: 400, damping: 20 }}
         {...fabAnimation}
       >
         <Plus size={28} />

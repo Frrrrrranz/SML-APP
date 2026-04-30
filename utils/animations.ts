@@ -25,7 +25,7 @@ export const easeTransition: Transition = {
 // 快速过渡
 export const quickTransition: Transition = {
     type: 'tween',
-    ease: 'easeOut',
+    ease: 'easeOut' as const,
     duration: 0.2,
 };
 
@@ -234,14 +234,14 @@ export const pageTransition: Variants = {
         opacity: 1,
         transition: {
             duration: 0.25,
-            ease: 'easeOut',
+            ease: 'easeOut' as const,
         },
     },
     exit: {
         opacity: 0,
         transition: {
             duration: 0.15,
-            ease: 'easeIn',
+            ease: 'easeIn' as const,
         },
     },
 };
@@ -265,7 +265,7 @@ export const tabContent: Variants = {
         y: -8,
         transition: {
             duration: 0.15,
-            ease: 'easeIn',
+            ease: 'easeIn' as const,
         },
     },
 };
