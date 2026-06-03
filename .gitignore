@@ -47,3 +47,9 @@ android/local.properties
 # Electron
 electron/dist/
 release/
+
+# Supabase CLI 运行产物（不应进入版本控制）
+supabase/.temp/
+
+# PowerShell 误产生的 $null 文件
+$null
