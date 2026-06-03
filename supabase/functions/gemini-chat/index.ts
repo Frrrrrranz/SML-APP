@@ -7,7 +7,9 @@
 const SYSTEM_PROMPT = `你是SML古典音乐助手。回答作曲家、作品、乐理、音乐史问题。
 要求：简明准确，1-3段，用户用什么语言你就用什么语言回答。非音乐话题请礼貌拒绝。`
 
-const MODEL = 'qwen-turbo'
+// NOTE: qwen-turbo 额度用完时可切换到此列表中的其他模型（各模型免费额度独立）
+// 可选: 'qwen-turbo' | 'qwen-plus' | 'qwen-long' | 'qwen3.6-flash' | 'qwen3.6-plus' | 'qwen3.7-plus'
+const MODEL = 'qwen3.6-flash'
 const API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 
 // 速率限制配置
