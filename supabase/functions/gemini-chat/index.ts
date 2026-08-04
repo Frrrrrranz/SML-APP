@@ -1,5 +1,5 @@
 // Supabase Edge Function: AI 音乐助手代理
-// NOTE: 使用阿里云通义千问 (DashScope) API，兼容 OpenAI 格式
+// NOTE: 使用 DeepSeek API，兼容 OpenAI 格式
 // 包含用户级速率限制：每小时 10 次、每天 30 次
 // 部署命令: npx supabase functions deploy gemini-chat --no-verify-jwt
 
@@ -7,10 +7,8 @@
 const SYSTEM_PROMPT = `你是SML古典音乐助手。回答作曲家、作品、乐理、音乐史问题。
 要求：简明准确，1-3段，用户用什么语言你就用什么语言回答。非音乐话题请礼貌拒绝。`
 
-// NOTE: qwen-turbo 额度用完时可切换到此列表中的其他模型（各模型免费额度独立）
-// 可选: 'qwen-turbo' | 'qwen-plus' | 'qwen-long' | 'qwen3.6-flash' | 'qwen3.6-plus' | 'qwen3.7-plus'
-const MODEL = 'qwen3.6-flash'
-const API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+const MODEL = 'deepseek-v4-flash'
+const API_URL = 'https://api.deepseek.com/chat/completions'
 
 // 速率限制配置
 const RATE_LIMIT_HOURLY = 10
@@ -139,7 +137,7 @@ Deno.serve(async (req) => {
         }
 
         // 读取配置
-        const apiKey = Deno.env.get('DASHSCOPE_API_KEY')
+        const apiKey = Deno.env.get('DEEPSEEK_API_KEY') || Deno.env.get('DASHSCOPE_API_KEY')
         const supabaseUrl = Deno.env.get('SUPABASE_URL')
         const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
@@ -164,7 +162,7 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 调用通义千问 API
+        // 调用 DeepSeek API
         const aiResponse = await fetch(API_URL, {
             method: 'POST',
             headers: {
@@ -184,7 +182,7 @@ Deno.serve(async (req) => {
 
         if (!aiResponse.ok) {
             const errorText = await aiResponse.text()
-            console.error('DashScope API error:', aiResponse.status, errorText)
+            console.error('DeepSeek API error:', aiResponse.status, errorText)
             return new Response(
                 JSON.stringify({ error: `AI 服务暂时不可用 (${aiResponse.status})` }),
                 { status: 200, headers: CORS_HEADERS }
